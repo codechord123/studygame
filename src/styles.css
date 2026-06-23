@@ -1025,6 +1025,200 @@ body {
   transform: scale(0.94);
 }
 
+/* ── 마을 광장 (기본 학습 허브) ───────────────────────────────── */
+.plaza {
+  gap: 16px;
+}
+.plaza-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(135deg, #2c3566, #1d2247);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 16px 18px;
+}
+.plaza-avatar {
+  font-size: 44px;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.35));
+}
+.plaza-hi {
+  margin: 0;
+  font-size: 20px;
+}
+.plaza-sub {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.subject-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.subject-card {
+  position: relative;
+  border: none;
+  border-radius: 20px;
+  padding: 18px 14px 14px;
+  cursor: pointer;
+  color: #fff;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 132px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+  transition: transform 0.1s ease;
+  overflow: hidden;
+}
+.subject-card:active {
+  transform: scale(0.97);
+}
+.subject-card::after {
+  content: '';
+  position: absolute;
+  right: -16px;
+  bottom: -16px;
+  width: 90px;
+  height: 90px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+}
+.sc-emoji {
+  font-size: 40px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3));
+}
+.sc-subject {
+  margin-top: 8px;
+  font-size: 18px;
+  font-weight: 900;
+}
+.sc-name {
+  font-size: 13px;
+  opacity: 0.92;
+}
+.sc-meta {
+  margin-top: auto;
+  font-size: 11px;
+  opacity: 0.95;
+  z-index: 1;
+}
+.theme-math {
+  background: linear-gradient(145deg, #5b6cf0, #3b45c4);
+}
+.theme-korean {
+  background: linear-gradient(145deg, #ff7eb3, #e8537f);
+}
+.theme-social {
+  background: linear-gradient(145deg, #ffb347, #f08a24);
+}
+.theme-science {
+  background: linear-gradient(145deg, #2bc4a8, #17977f);
+}
+
+.plaza-quick {
+  display: flex;
+  gap: 8px;
+}
+.quick-btn {
+  flex: 1;
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: 14px;
+  padding: 12px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.quick-btn:active {
+  transform: scale(0.96);
+}
+
+/* NPC 대화창 */
+.npc-dialog {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 44px 20px 20px;
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: pop 0.25s ease;
+}
+.npc-dialog::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 64px;
+  border-radius: 24px 24px 0 0;
+  opacity: 0.35;
+}
+.theme-math.npc-dialog::before {
+  background: linear-gradient(145deg, #5b6cf0, #3b45c4);
+}
+.theme-korean.npc-dialog::before {
+  background: linear-gradient(145deg, #ff7eb3, #e8537f);
+}
+.theme-social.npc-dialog::before {
+  background: linear-gradient(145deg, #ffb347, #f08a24);
+}
+.theme-science.npc-dialog::before {
+  background: linear-gradient(145deg, #2bc4a8, #17977f);
+}
+.npc-portrait {
+  position: relative;
+  font-size: 64px;
+  line-height: 1;
+  margin-top: -8px;
+}
+.npc-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.npc-head b {
+  font-size: 19px;
+}
+.npc-tag {
+  font-size: 12px;
+  color: var(--muted);
+}
+.npc-speech {
+  background: #0e1126;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin: 4px 0 6px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.npc-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dialog-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: rgba(0, 0, 0, 0.25);
+  border: none;
+  color: #fff;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 14px;
+  cursor: pointer;
+}
+
 /* HUD 메뉴 버튼 */
 .menu-btn {
   background: var(--card);

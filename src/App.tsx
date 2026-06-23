@@ -36,7 +36,9 @@ import {
   houseInfo,
   nextHouseCost,
   CLASSMATES,
+  VILLAGERS,
   villagerById,
+  friendHearts,
   type Villager,
   type Furniture,
   type Classmate,
@@ -48,6 +50,7 @@ import type { Problem } from './types/problem'
 
 type Screen =
   | 'town'
+  | 'walk'
   | 'quiz'
   | 'result'
   | 'wrong'
@@ -451,6 +454,15 @@ export default function App() {
       )}
 
       {screen === 'town' && (
+        <Plaza
+          profile={profile}
+          onStudy={talkAndStudy}
+          onMake={makeForVillager}
+          onGo={go}
+        />
+      )}
+
+      {screen === 'walk' && (
         <TownMap
           avatar={profile.avatar}
           hat={cosmeticById(profile.equipped)?.emoji}
@@ -677,12 +689,133 @@ function Hud(props: {
   )
 }
 
+// ── 마을 광장 (기본 화면) : 과목 NPC 중심의 깔끔한 학습 허브 ──────
+const SUBJECT_THEME: Record<string, string> = {
+  수학: 'theme-math',
+  국어: 'theme-korean',
+  사회: 'theme-social',
+  과학: 'theme-science',
+}
+
+function Plaza(props: {
+  profile: PlayerProfile
+  onStudy: (v: Villager, mode: PlayMode) => void
+  onMake: (v: Villager) => void
+  onGo: (s: Screen) => void
+}) {
+  const [active, setActive] = useState<Villager | null>(null)
+  const stats = subjectStats(props.profile.mastery)
+  const masteredOf = (subject: string) => stats.find((s) => s.subject === subject)?.mastered ?? 0
+  const seenOf = (subject: string) => stats.find((s) => s.subject === subject)?.seen ?? 0
+
+  return (
+    <main className="screen plaza">
+      <div className="plaza-hero">
+        <span className="plaza-avatar">{props.profile.avatar}</span>
+        <div>
+          <h1 className="plaza-hi">안녕, {props.profile.characterName}!</h1>
+          <p className="plaza-sub">오늘은 어떤 친구와 공부할까요?</p>
+        </div>
+      </div>
+
+      <div className="subject-cards">
+        {VILLAGERS.map((v) => {
+          const hearts = friendHearts(props.profile.villagerFriends[v.id] ?? 0)
+          const seen = seenOf(v.subject)
+          return (
+            <button
+              key={v.id}
+              className={`subject-card ${SUBJECT_THEME[v.subject] ?? ''}`}
+              onClick={() => setActive(v)}
+            >
+              <span className="sc-emoji">{v.emoji}</span>
+              <span className="sc-subject">{v.subject}</span>
+              <span className="sc-name">{v.name}</span>
+              <span className="sc-meta">
+                {hearts > 0 ? '❤️'.repeat(hearts) : '🤍'} · 익힘 {masteredOf(v.subject)}/{seen || 0}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="plaza-quick">
+        <button className="quick-btn" onClick={() => props.onGo('dashboard')}>
+          📊 학습 현황
+        </button>
+        <button className="quick-btn" onClick={() => props.onGo('dex')}>
+          📜 도감
+        </button>
+        <button className="quick-btn" onClick={() => props.onGo('walk')}>
+          🚶 마을 산책
+        </button>
+      </div>
+
+      {active && (
+        <div className="modal-backdrop" onClick={() => setActive(null)}>
+          <div
+            className={`npc-dialog ${SUBJECT_THEME[active.subject] ?? ''}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="npc-portrait">{active.emoji}</div>
+            <div className="npc-head">
+              <b>{active.name}</b>
+              <span className="npc-tag">{active.subject} 선생님</span>
+            </div>
+            <p className="npc-speech">
+              “
+              {friendHearts(props.profile.villagerFriends[active.id] ?? 0) >= 3
+                ? active.bond
+                : active.greeting}
+              ”
+            </p>
+            <div className="npc-actions">
+              <button
+                className="btn primary big"
+                onClick={() => {
+                  const v = active
+                  setActive(null)
+                  props.onStudy(v, 'study')
+                }}
+              >
+                📖 차근차근 학습
+              </button>
+              <button
+                className="btn challenge big"
+                onClick={() => {
+                  const v = active
+                  setActive(null)
+                  props.onStudy(v, 'challenge')
+                }}
+              >
+                ⚡ 도전 (타이머)
+              </button>
+              <button
+                className="btn ghost big"
+                onClick={() => {
+                  const v = active
+                  setActive(null)
+                  props.onMake(v)
+                }}
+              >
+                🤖 사진으로 문제 추가
+              </button>
+            </div>
+            <button className="dialog-close" onClick={() => setActive(null)}>
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+    </main>
+  )
+}
+
 // ── 메뉴 (어디서든 빠른 이동 = 대시보드 허브) ─────────────────────
 function MainMenu(props: { onGo: (s: Screen) => void; onClose: () => void }) {
   const items: { s: Screen; emoji: string; label: string }[] = [
+    { s: 'town', emoji: '🏛️', label: '광장' },
     { s: 'dashboard', emoji: '📊', label: '학습 현황' },
-    { s: 'town', emoji: '🗺️', label: '마을' },
-    { s: 'game', emoji: '🎮', label: '필드 (픽셀)' },
     { s: 'dex', emoji: '📜', label: '학습 도감' },
     { s: 'wrong', emoji: '📒', label: '오답노트' },
     { s: 'ai', emoji: '🤖', label: '문제공방' },
@@ -690,6 +823,8 @@ function MainMenu(props: { onGo: (s: Screen) => void; onClose: () => void }) {
     { s: 'missions', emoji: '🎯', label: '미션' },
     { s: 'ranking', emoji: '🏆', label: '랭킹' },
     { s: 'room', emoji: '🏠', label: '내 집' },
+    { s: 'walk', emoji: '🚶', label: '마을 산책' },
+    { s: 'game', emoji: '🎮', label: '필드 (베타)' },
   ]
   return (
     <div className="modal-backdrop" onClick={props.onClose}>
