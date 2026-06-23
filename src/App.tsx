@@ -430,9 +430,10 @@ export default function App() {
   function saveProblem(villagerId: string, unitName: string, problem: Problem) {
     setCustomStore((s) => addCustomProblem(s, villagerId, unitName, problem))
   }
-  function makeForVillager(v: Villager) {
-    setAiVillager(v)
-    setScreen('ai')
+  // 아이들이 직접 문제를 만드는 경로(과목 미리 지정)
+  function openCreate(v?: Villager) {
+    if (v) setUnitVillager(v)
+    setScreen('create')
   }
 
   // ── 게임(Phaser) 연동: 월드를 유지한 채 퀴즈를 오버레이로 ──
@@ -589,7 +590,7 @@ export default function App() {
         <Plaza
           profile={profile}
           onUnits={openUnits}
-          onMake={makeForVillager}
+          onCreate={openCreate}
           onGo={go}
         />
       )}
@@ -600,7 +601,6 @@ export default function App() {
           units={unitsForVillager(unitVillager)}
           profile={profile}
           onChoose={chooseUnit}
-          onMake={() => makeForVillager(unitVillager)}
           onCreate={() => setScreen('create')}
           onBack={() => setScreen('subjects')}
         />
@@ -636,7 +636,7 @@ export default function App() {
             Math.round(classmates.reduce((s, c) => s + (c.me ? 0 : c.xp), 0) / 40)
           }
           onStudy={talkAndStudy}
-          onMake={makeForVillager}
+          onMake={openCreate}
           onOpen={(s: FacilityScreen) => setScreen(s)}
         />
       )}
@@ -881,7 +881,7 @@ function Hud(props: {
 function Plaza(props: {
   profile: PlayerProfile
   onUnits: (v: Villager) => void
-  onMake: (v: Villager) => void
+  onCreate: (v: Villager) => void
   onGo: (s: Screen) => void
 }) {
   const [active, setActive] = useState<Villager | null>(null)
@@ -966,10 +966,10 @@ function Plaza(props: {
                 onClick={() => {
                   const v = active
                   setActive(null)
-                  props.onMake(v)
+                  props.onCreate(v)
                 }}
               >
-                🤖 사진으로 문제 추가
+                ✏️ 직접 문제 만들기
               </button>
             </div>
             <button className="dialog-close" onClick={() => setActive(null)}>
@@ -1205,7 +1205,6 @@ function UnitSelect(props: {
   units: Unit[]
   profile: PlayerProfile
   onChoose: (u: Unit) => void
-  onMake: () => void
   onCreate: () => void
   onBack: () => void
 }) {
@@ -1261,9 +1260,6 @@ function UnitSelect(props: {
       <button className="btn primary big" onClick={props.onCreate}>
         ✏️ 직접 문제 만들기
       </button>
-      <button className="btn accent big" onClick={props.onMake}>
-        🤖 사진으로 문제 추가 (AI)
-      </button>
       <button className="btn ghost big" onClick={props.onBack}>
         광장으로
       </button>
@@ -1278,6 +1274,7 @@ function MainMenu(props: { onGo: (s: Screen) => void; onClose: () => void }) {
     { s: 'subjects', emoji: '📚', label: '공부하기' },
     { s: 'costume', emoji: '👕', label: '꾸미기' },
     { s: 'create', emoji: '✏️', label: '문제 만들기' },
+    { s: 'ai', emoji: '🤖', label: '사진 변환(AI)' },
     { s: 'dashboard', emoji: '📊', label: '학습 현황' },
     { s: 'dex', emoji: '📜', label: '학습 도감' },
     { s: 'wrong', emoji: '📒', label: '오답노트' },

@@ -443,7 +443,7 @@ export function TownMap({ avatar, hat, characterName, houseStage, mates, stars, 
             <p className="modal-line">“{activeVillager.greeting}”</p>
             <button className="btn primary big" onClick={() => { const v = activeVillager; setActiveVillager(null); onStudy(v, 'study') }}>📖 같이 공부하기</button>
             <button className="btn challenge big" onClick={() => { const v = activeVillager; setActiveVillager(null); onStudy(v, 'challenge') }}>⚡ 도전 모드</button>
-            <button className="btn accent big" onClick={() => { const v = activeVillager; setActiveVillager(null); onMake(v) }}>🤖 {activeVillager.subject} 문제 더 만들기</button>
+            <button className="btn accent big" onClick={() => { const v = activeVillager; setActiveVillager(null); onMake(v) }}>✏️ {activeVillager.subject} 문제 만들기</button>
             <button className="btn ghost big" onClick={() => setActiveVillager(null)}>닫기</button>
           </div>
         </div>
