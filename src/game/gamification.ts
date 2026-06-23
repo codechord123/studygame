@@ -9,15 +9,21 @@ export interface DailyState {
 
 export interface PlayerProfile {
   xp: number // 누적 경험치 (= 누적 포인트)
-  coins: number // 펫 꾸미기·상점 재화
+  coins: number // 벨(마을 재화)
   badges: string[] // 획득한 뱃지 id 목록
   bestCombo: number
   solvedCount: number
   correctCount: number
   bestScore: number // 한 세트 최고 점수(정답률) — 랭킹용
-  cosmetics: string[] // 보유한 펫 꾸미기 id
+  cosmetics: string[] // 보유한 옷·모자 id
   equipped: string | null // 착용 중인 꾸미기 id
   daily: DailyState
+  // ── 마을/정체성 ──
+  onboarded: boolean // 첫 이사(온보딩) 완료 여부
+  characterName: string // 내 캐릭터 이름
+  avatar: string // 선택한 동물 아바타(이모지)
+  furniture: string[] // 보유한 가구 id (집 꾸미기)
+  villagerFriends: Record<string, number> // 주민별 친밀도 점수
 }
 
 export function todayStr(d = new Date()): string {
@@ -37,12 +43,19 @@ export const emptyProfile: PlayerProfile = {
   cosmetics: [],
   equipped: null,
   daily: { date: todayStr(), solved: 0, bestCombo: 0, claimed: [] },
+  onboarded: false,
+  characterName: '',
+  avatar: '🐱',
+  furniture: [],
+  villagerFriends: {},
 }
 
 /** 저장된 프로필을 최신 스키마로 보정 + 날짜 바뀌면 일일 상태 초기화 */
 export function normalizeProfile(p: Partial<PlayerProfile> | null | undefined): PlayerProfile {
   const merged: PlayerProfile = { ...emptyProfile, ...(p ?? {}) }
   merged.daily = { ...emptyProfile.daily, ...(p?.daily ?? {}) }
+  merged.villagerFriends = { ...(p?.villagerFriends ?? {}) }
+  merged.furniture = [...(p?.furniture ?? [])]
   if (merged.daily.date !== todayStr()) {
     merged.daily = { date: todayStr(), solved: 0, bestCombo: 0, claimed: [] }
   }

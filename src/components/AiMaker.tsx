@@ -9,14 +9,16 @@ import type { Problem } from '../types/problem'
 interface Props {
   onBack: () => void
   onUse: (problems: Problem[], title: string) => void
+  /** 특정 주민(과목)을 위해 만드는 경우 */
+  villagerName?: string
 }
 
 // 학습지 사진을 업로드 → AI 가 문제 JSON 으로 변환 → 미리보기 → 그대로 학습 시작.
-export function AiMaker({ onBack, onUse }: Props) {
+export function AiMaker({ onBack, onUse, villagerName }: Props) {
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [fileName, setFileName] = useState('')
   const [subject, setSubject] = useState('수학')
-  const [grade, setGrade] = useState('5-1')
+  const [grade, setGrade] = useState('')
   const [unit, setUnit] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -60,8 +62,11 @@ export function AiMaker({ onBack, onUse }: Props) {
 
   return (
     <main className="screen ai-maker">
-      <h1 className="title">🤖 AI 문제 만들기</h1>
-      <p className="subtitle">문제집·시험지 사진을 올리면 자동으로 문제로 바꿔줘요</p>
+      <h1 className="title">🤖 문제공방</h1>
+      <p className="subtitle">
+        {villagerName ? `${villagerName}에게 줄 문제를 만들어요 · ` : ''}
+        사진을 올리면 자동으로 문제로 바꿔줘요
+      </p>
 
       <label className="upload-box">
         {imageUrl ? (

@@ -519,6 +519,266 @@ body {
   width: 100%;
 }
 
+/* splash */
+.splash {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--muted);
+  font-size: 18px;
+}
+
+/* onboarding */
+.onboarding .screen {
+  min-height: 70vh;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+.story-emoji {
+  font-size: 72px;
+  animation: bob 2.4s ease-in-out infinite;
+}
+.story-text {
+  font-size: 19px;
+  line-height: 1.7;
+  max-width: 360px;
+}
+.avatar-pick {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+.avatar-opt {
+  font-size: 28px;
+  padding: 8px 0;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+}
+.avatar-opt.sel {
+  border-color: var(--accent);
+  background: #232a55;
+}
+
+/* HUD identity */
+.pet {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.pet-hat.big {
+  top: -22px;
+  font-size: 40px;
+}
+.hud-id {
+  font-size: 13px;
+  margin-bottom: 3px;
+}
+.hud-title {
+  color: var(--accent);
+  font-size: 11px;
+  background: rgba(255, 209, 102, 0.12);
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+
+/* town */
+.town-sky {
+  background: linear-gradient(180deg, #2a3566, #1b2147);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 18px;
+  text-align: center;
+}
+.town-title {
+  margin: 0;
+  font-size: 22px;
+}
+.town-sub {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.section-label {
+  margin: 6px 0 -2px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.villager-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.villager {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  color: var(--ink);
+}
+.villager:active {
+  transform: scale(0.96);
+}
+.villager-emoji {
+  font-size: 30px;
+}
+.villager-name {
+  font-size: 12px;
+  font-weight: 700;
+}
+.villager-subject {
+  font-size: 10px;
+  color: var(--muted);
+}
+.hearts {
+  font-size: 9px;
+  letter-spacing: -1px;
+}
+.building-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.building {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  color: var(--ink);
+}
+.building:active {
+  transform: scale(0.96);
+}
+.building-emoji {
+  font-size: 26px;
+}
+.building-label {
+  font-size: 12px;
+  font-weight: 700;
+}
+.badge-count.sm {
+  top: 8px;
+  right: 10px;
+  min-width: 18px;
+  height: 18px;
+  font-size: 11px;
+}
+
+/* modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 20;
+}
+.modal {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 20px;
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: center;
+  animation: slidein 0.2s ease;
+}
+.modal-emoji {
+  font-size: 56px;
+}
+.modal-name {
+  font-size: 18px;
+  font-weight: 800;
+}
+.modal-subject {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+.modal-line {
+  color: var(--ink);
+  line-height: 1.6;
+  margin: 4px 0 10px;
+}
+
+/* room */
+.room-stage {
+  position: relative;
+  background: linear-gradient(180deg, #2a2150, #20284e);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 16px;
+  overflow: hidden;
+}
+.room-floor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 34px;
+  min-height: 44px;
+}
+.room-empty {
+  font-size: 13px;
+  color: var(--muted);
+}
+.room-avatar {
+  position: relative;
+  font-size: 64px;
+  align-self: center;
+  margin-top: 8px;
+}
+.furni {
+  line-height: 1;
+}
+
+/* tabs */
+.tab-row {
+  display: flex;
+  gap: 8px;
+}
+.tab {
+  flex: 1;
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  border-radius: 12px;
+  padding: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.tab.on {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+/* result extras */
+.friend-gain {
+  color: #ff8aa0;
+  font-weight: 700;
+}
+
 /* home nav */
 .home-nav {
   display: flex;
