@@ -28,7 +28,7 @@ const TILE = 46
 const STEP_MS = 140 // 한 칸 이동 간격(연속 이동 속도)
 
 type Terrain = 'grass' | 'path' | 'water' | 'tree' | 'flower'
-export type FacilityScreen = 'room' | 'shop' | 'missions' | 'ranking' | 'wrong' | 'ai'
+export type FacilityScreen = 'room' | 'shop' | 'missions' | 'ranking' | 'wrong' | 'ai' | 'dex'
 
 interface StaticEntity {
   id: string
@@ -97,6 +97,7 @@ const FACILITIES: { facility: FacilityScreen; emoji: string; name: string; x: nu
   { facility: 'ranking', emoji: '⭐', name: '명예의 별', x: 2, y: 12 },
   { facility: 'ai', emoji: '🏭', name: '문제공방', x: 10, y: 12 },
   { facility: 'wrong', emoji: '📕', name: '오답노트', x: 6, y: 4 },
+  { facility: 'dex', emoji: '📜', name: '학습도감', x: 6, y: 12 },
 ]
 const MY_HOUSE_POS: [number, number] = [6, 15]
 const MATE_PLOTS: [number, number][] = [[2, 14], [4, 14], [8, 14], [10, 14], [2, 16], [4, 16], [8, 16], [10, 16]]

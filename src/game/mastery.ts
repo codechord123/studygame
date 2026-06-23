@@ -8,20 +8,31 @@ export interface MasteryEntry {
   seen: number // 풀어본 횟수
   streak: number // 연속 정답 수 (틀리면 0)
   wrong: boolean // 마지막에 틀렸는지
+  subject?: string // 과목 (도감 집계용)
+  unit?: string // 단원 (도감 집계용)
 }
 export type MasteryMap = Record<string, MasteryEntry>
+
+/** 연속 정답 이 값 이상이면 '익힘(마스터)' 으로 본다 */
+export const MASTER_STREAK = 3
 
 export function emptyEntry(): MasteryEntry {
   return { seen: 0, streak: 0, wrong: false }
 }
 
 /** 한 문항을 풀고 난 뒤 숙련도 갱신값 계산 (순수 함수) */
-export function updateEntry(prev: MasteryEntry | undefined, correct: boolean): MasteryEntry {
+export function updateEntry(
+  prev: MasteryEntry | undefined,
+  correct: boolean,
+  meta?: { subject?: string; unit?: string },
+): MasteryEntry {
   const e = prev ?? emptyEntry()
   return {
     seen: e.seen + 1,
     streak: correct ? e.streak + 1 : 0,
     wrong: !correct,
+    subject: meta?.subject ?? e.subject,
+    unit: meta?.unit ?? e.unit,
   }
 }
 

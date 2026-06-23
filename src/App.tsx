@@ -42,10 +42,22 @@ import {
   type Classmate,
 } from './game/world'
 import { orderByMastery, updateEntry, type MasteryMap } from './game/mastery'
+import { subjectStats, unitCards, trophies } from './game/collection'
 import { VILLAGER_PROBLEMS } from './data/villagerQuizzes'
 import type { Problem } from './types/problem'
 
-type Screen = 'town' | 'quiz' | 'result' | 'wrong' | 'ai' | 'shop' | 'missions' | 'ranking' | 'room' | 'game'
+type Screen =
+  | 'town'
+  | 'quiz'
+  | 'result'
+  | 'wrong'
+  | 'ai'
+  | 'shop'
+  | 'missions'
+  | 'ranking'
+  | 'room'
+  | 'game'
+  | 'dex'
 
 function getCarrots(): number {
   return Number(localStorage.getItem('sg.carrots') || '0')
@@ -218,6 +230,7 @@ export default function App() {
       [problem.id]: updateEntry(
         session.masteryUpdates[problem.id] ?? profile.mastery[problem.id],
         r.correct,
+        { subject: problem.subject, unit: problem.unit },
       ),
     }
 
@@ -330,7 +343,10 @@ export default function App() {
     }
     const masteryUpdates: MasteryMap = {
       ...gameSession.masteryUpdates,
-      [problem.id]: updateEntry(gameSession.masteryUpdates[problem.id] ?? profile.mastery[problem.id], r.correct),
+      [problem.id]: updateEntry(gameSession.masteryUpdates[problem.id] ?? profile.mastery[problem.id], r.correct, {
+        subject: problem.subject,
+        unit: problem.unit,
+      }),
     }
     const next: SessionState = {
       ...gameSession,
@@ -514,9 +530,12 @@ export default function App() {
           onUpgrade={upgradeHouse}
           onShop={() => setScreen('shop')}
           onGame={() => setScreen('game')}
+          onDex={() => setScreen('dex')}
           onBack={() => setScreen('town')}
         />
       )}
+
+      {screen === 'dex' && <Dex profile={profile} onBack={() => setScreen('town')} />}
 
       {screen === 'missions' && (
         <Missions profile={profile} onClaim={claimMission} onBack={() => setScreen('town')} />
@@ -641,6 +660,7 @@ function Room(props: {
   onUpgrade: () => void
   onShop: () => void
   onGame: () => void
+  onDex: () => void
   onBack: () => void
 }) {
   const { profile } = props
@@ -650,6 +670,7 @@ function Room(props: {
   const house = houseInfo(profile.houseStage)
   const nextCost = nextHouseCost(profile.houseStage)
   const canUpgrade = nextCost != null && profile.coins >= nextCost
+  const wonTrophies = trophies(profile, profile.mastery).filter((t) => t.earned)
 
   return (
     <main className="screen room">
@@ -657,6 +678,15 @@ function Room(props: {
 
       <div className="room-stage">
         <div className="house-big">{house.emoji}</div>
+        {wonTrophies.length > 0 && (
+          <div className="trophy-shelf" title="학습 전시품">
+            {wonTrophies.map((t) => (
+              <span key={t.id} className="shelf-item" title={t.name}>
+                {t.emoji}
+              </span>
+            ))}
+          </div>
+        )}
         <div className="room-floor">
           {placed.length === 0 ? (
             <span className="room-empty">상점에서 가구를 사면 여기에 놓여요</span>
@@ -723,6 +753,9 @@ function Room(props: {
         </button>
       </div>
 
+      <button className="btn primary big" onClick={props.onDex}>
+        📜 학습 도감 보기
+      </button>
       <button className="btn accent big" onClick={props.onShop}>
         🛍️ 옷·가구 사러 가기
       </button>
@@ -884,6 +917,75 @@ function Result(props: {
           틀린 {session.wrong.length}문제 복습
         </button>
       )}
+    </main>
+  )
+}
+
+// ── 학습 도감 ─────────────────────────────────────────────────────
+function Dex(props: { profile: PlayerProfile; onBack: () => void }) {
+  const subjects = subjectStats(props.profile.mastery)
+  const units = unitCards(props.profile.mastery)
+  const tlist = trophies(props.profile, props.profile.mastery)
+  const earnedCount = tlist.filter((t) => t.earned).length
+
+  return (
+    <main className="screen dex">
+      <h1 className="title">📜 학습 도감</h1>
+      <p className="subtitle">공부할수록 채워져요 · 전시품 {earnedCount}/{tlist.length}</p>
+
+      <h3 className="section-label">과목</h3>
+      {subjects.length === 0 ? (
+        <p className="empty">아직 비어 있어요. 주민과 공부하면 채워집니다!</p>
+      ) : (
+        <div className="dex-subjects">
+          {subjects.map((s) => {
+            const pct = s.seen ? Math.round((s.mastered / s.seen) * 100) : 0
+            return (
+              <div key={s.subject} className="dex-subject">
+                <span className="dex-emoji">{s.emoji}</span>
+                <div className="dex-sub-body">
+                  <div className="dex-sub-top">
+                    <b>{s.subject}</b>
+                    <span className="dex-sub-num">익힘 {s.mastered} / {s.seen}</span>
+                  </div>
+                  <div className="mission-bar">
+                    <div className="mission-bar-fill" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      <h3 className="section-label">단원 수집</h3>
+      {units.length === 0 ? (
+        <p className="empty">아직 모은 단원이 없어요.</p>
+      ) : (
+        <div className="dex-units">
+          {units.map((u) => (
+            <div key={u.subject + u.unit} className={`unit-card ${u.done ? 'done' : ''}`}>
+              <span className="unit-stamp">{u.done ? '✅' : '📖'}</span>
+              <span className="unit-name">{u.unit}</span>
+              <span className="unit-sub">{u.subject} · {u.mastered}/{u.seen}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <h3 className="section-label">전시품 (내 집에 진열돼요)</h3>
+      <div className="trophy-grid">
+        {tlist.map((t) => (
+          <div key={t.id} className={`trophy ${t.earned ? 'earned' : 'locked'}`} title={t.desc}>
+            <span className="trophy-emoji">{t.earned ? t.emoji : '🔒'}</span>
+            <span className="trophy-name">{t.name}</span>
+          </div>
+        ))}
+      </div>
+
+      <button className="btn ghost big" onClick={props.onBack}>
+        마을로
+      </button>
     </main>
   )
 }

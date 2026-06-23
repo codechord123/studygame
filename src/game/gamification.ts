@@ -25,7 +25,7 @@ export interface PlayerProfile {
   furniture: string[] // 보유한 가구 id (집 꾸미기)
   villagerFriends: Record<string, number> // 주민별 친밀도 점수
   houseStage: number // 집 짓기 단계 (0~5)
-  mastery: Record<string, { seen: number; streak: number; wrong: boolean }> // 문항별 숙련도
+  mastery: Record<string, { seen: number; streak: number; wrong: boolean; subject?: string; unit?: string }> // 문항별 숙련도
 }
 
 export function todayStr(d = new Date()): string {

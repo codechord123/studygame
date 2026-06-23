@@ -1025,6 +1025,112 @@ body {
   transform: scale(0.94);
 }
 
+/* 학습 도감 */
+.dex-subjects {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dex-subject {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+.dex-emoji {
+  font-size: 28px;
+}
+.dex-sub-body {
+  flex: 1;
+  min-width: 0;
+}
+.dex-sub-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+.dex-sub-num {
+  color: var(--muted);
+  font-size: 12px;
+}
+.dex-units {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.unit-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.unit-card.done {
+  border-color: var(--good);
+  background: rgba(46, 204, 113, 0.1);
+}
+.unit-stamp {
+  font-size: 18px;
+}
+.unit-name {
+  font-size: 13px;
+  font-weight: 700;
+}
+.unit-sub {
+  font-size: 11px;
+  color: var(--muted);
+}
+.trophy-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.trophy {
+  width: 78px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.trophy.locked {
+  opacity: 0.5;
+}
+.trophy.earned {
+  border-color: var(--accent);
+}
+.trophy-emoji {
+  font-size: 24px;
+}
+.trophy-name {
+  font-size: 10px;
+  text-align: center;
+  color: var(--muted);
+}
+.trophy-shelf {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 22px;
+  z-index: 2;
+}
+.shelf-item {
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.4));
+}
+
 /* phaser game */
 .phaser-screen {
   position: relative;
