@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { sampleQuiz } from './data/sampleQuiz'
 import { QuestionCard } from './components/QuestionCard'
+import { AiMaker } from './components/AiMaker'
 import { store, type WrongNote } from './lib/storage'
 import {
   type PlayerProfile,
@@ -15,7 +16,7 @@ import {
 } from './game/gamification'
 import type { Problem } from './types/problem'
 
-type Screen = 'home' | 'quiz' | 'result' | 'wrong'
+type Screen = 'home' | 'quiz' | 'result' | 'wrong' | 'ai'
 
 interface SessionState {
   problems: Problem[]
@@ -137,7 +138,12 @@ export default function App() {
           badges={profile.badges}
           onStart={() => startQuiz(sampleQuiz.problems)}
           onWrong={() => setScreen('wrong')}
+          onAi={() => setScreen('ai')}
         />
+      )}
+
+      {screen === 'ai' && (
+        <AiMaker onBack={() => setScreen('home')} onUse={(problems) => startQuiz(problems)} />
       )}
 
       {screen === 'quiz' && session && (
@@ -215,6 +221,7 @@ function Home(props: {
   badges: string[]
   onStart: () => void
   onWrong: () => void
+  onAi: () => void
 }) {
   return (
     <main className="screen home">
@@ -223,6 +230,9 @@ function Home(props: {
 
       <button className="btn primary big" onClick={props.onStart}>
         ▶ 학습 시작
+      </button>
+      <button className="btn accent big" onClick={props.onAi}>
+        🤖 AI 문제 만들기
       </button>
       <button className="btn ghost big" onClick={props.onWrong}>
         📒 오답노트

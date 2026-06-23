@@ -40,16 +40,17 @@ export interface ConvertOptions {
  * 이미지(base64 data URL)를 문제 배열로 변환.
  * 실제 LLM 호출은 서버 엔드포인트에 위임한다. (키 노출 방지)
  */
+/** 변환 엔드포인트 기본값: VITE_CONVERT_ENDPOINT 환경변수 → 없으면 로컬 데브 서버 */
+export const DEFAULT_ENDPOINT =
+  (import.meta.env?.VITE_CONVERT_ENDPOINT as string | undefined) ??
+  'http://localhost:8787/api/convert'
+
 export async function convertImageToProblems(
   imageDataUrl: string,
   opts: ConvertOptions = {},
 ): Promise<Problem[]> {
-  if (!opts.endpoint) {
-    throw new Error(
-      'AI 변환 엔드포인트가 설정되지 않았습니다. 서버리스 함수를 배포하고 endpoint 를 지정하세요.',
-    )
-  }
-  const res = await fetch(opts.endpoint, {
+  const endpoint = opts.endpoint ?? DEFAULT_ENDPOINT
+  const res = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
