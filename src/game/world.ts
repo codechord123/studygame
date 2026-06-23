@@ -102,6 +102,59 @@ export function furnitureById(id: string): Furniture | undefined {
   return FURNITURE.find((f) => f.id === id)
 }
 
+// ── 집 짓기 (문제로 모은 벨로 단계별 완성) ────────────────────────
+export interface HouseStage {
+  emoji: string
+  name: string
+  cost: number // 이 단계로 올리는 데 드는 벨 (누적 아님)
+}
+export const HOUSE_STAGES: HouseStage[] = [
+  { emoji: '⛺', name: '텐트', cost: 0 },
+  { emoji: '🛖', name: '오두막', cost: 150 },
+  { emoji: '🏠', name: '아담한 집', cost: 400 },
+  { emoji: '🏡', name: '정원 집', cost: 800 },
+  { emoji: '🏘️', name: '큰 저택', cost: 1500 },
+  { emoji: '🏰', name: '별빛 성', cost: 3000 },
+]
+export const MAX_HOUSE_STAGE = HOUSE_STAGES.length - 1
+
+export function houseInfo(stage: number): HouseStage {
+  return HOUSE_STAGES[Math.max(0, Math.min(stage, MAX_HOUSE_STAGE))]
+}
+/** 다음 단계로 올리는 비용. 최종 단계면 null */
+export function nextHouseCost(stage: number): number | null {
+  return stage >= MAX_HOUSE_STAGE ? null : HOUSE_STAGES[stage + 1].cost
+}
+/** 경험치로부터 집 단계 추정 (반 친구 등 stage 정보가 없을 때) */
+export function houseStageFromXp(xp: number): number {
+  const thresholds = [0, 120, 400, 800, 1500, 3000]
+  let s = 0
+  thresholds.forEach((t, i) => {
+    if (xp >= t) s = i
+  })
+  return s
+}
+
+// ── 우리 반 (가상 공간의 반 친구들) ───────────────────────────────
+// 오프라인 기본값(봇). Firebase 연동 시 실제 반 친구 데이터로 대체된다.
+export interface Classmate {
+  name: string
+  avatar: string
+  xp: number
+  houseStage: number
+  me?: boolean
+}
+export const CLASSMATES: Classmate[] = [
+  { name: '민준', avatar: '🐯', xp: 1600, houseStage: 4 },
+  { name: '서연', avatar: '🐰', xp: 1150, houseStage: 3 },
+  { name: '도윤', avatar: '🐻', xp: 820, houseStage: 3 },
+  { name: '하은', avatar: '🐨', xp: 560, houseStage: 2 },
+  { name: '시우', avatar: '🐶', xp: 430, houseStage: 2 },
+  { name: '지아', avatar: '🐼', xp: 300, houseStage: 1 },
+  { name: '준서', avatar: '🦊', xp: 150, houseStage: 1 },
+  { name: '유나', avatar: '🐹', xp: 60, houseStage: 0 },
+]
+
 // ── 서사: 첫 도착 인트로 ──────────────────────────────────────────
 export const INTRO_STORY: string[] = [
   '딸랑— 기차가 작은 시골 역에 멈췄어요.',

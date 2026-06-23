@@ -1,6 +1,7 @@
 import type { Problem } from '../types/problem'
 import { emptyProfile, type PlayerProfile } from '../game/gamification'
 import type { RankEntry } from '../game/progression'
+import type { Classmate } from '../game/world'
 import { firebaseEnabled } from './firebase/config'
 
 // 영속성 추상화 계층.
@@ -22,9 +23,12 @@ export interface Store {
   /** 같은 문제 id면 덮어쓴다 */
   upsertWrongNote(note: WrongNote): Promise<void>
   markResolved(problemId: string): Promise<void>
-  /** (선택) 공용 랭킹 — Firebase 백엔드에서만 구현. 없으면 화면은 로컬 모의 데이터 사용 */
-  submitScore?(name: string, score: number): Promise<void>
+  /** (선택) 내 공개 정보(이름·점수·경험치·집·아바타)를 동기화 — 랭킹/우리반 공간용 */
+  syncProfile?(p: PlayerProfile): Promise<void>
+  /** (선택) 공용 랭킹 (점수순) */
   loadLeaderboard?(): Promise<RankEntry[]>
+  /** (선택) 우리 반 친구들 (각자 집·경험치) — 없으면 화면은 로컬 봇 사용 */
+  loadClassmates?(): Promise<Classmate[]>
 }
 
 const PROFILE_KEY = 'sg.profile.v1'
@@ -101,11 +105,14 @@ export const store: Store = {
   async markResolved(problemId) {
     return (await backend()).markResolved(problemId)
   },
-  // 랭킹은 Firebase 백엔드에서만 노출 (없으면 화면이 로컬 모의 데이터로 폴백)
-  submitScore: firebaseEnabled
-    ? async (name, score) => (await backend()).submitScore?.(name, score)
+  // 공용 기능은 Firebase 백엔드에서만 노출 (없으면 화면이 로컬 데이터로 폴백)
+  syncProfile: firebaseEnabled
+    ? async (p) => (await backend()).syncProfile?.(p)
     : undefined,
   loadLeaderboard: firebaseEnabled
     ? async () => (await backend()).loadLeaderboard?.() ?? []
+    : undefined,
+  loadClassmates: firebaseEnabled
+    ? async () => (await backend()).loadClassmates?.() ?? []
     : undefined,
 }

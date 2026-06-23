@@ -779,6 +779,99 @@ body {
   font-weight: 700;
 }
 
+/* quiz exit */
+.q-exit {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.q-exit:active {
+  transform: scale(0.95);
+}
+
+/* house build */
+.house-big {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 64px;
+}
+.build-box {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.build-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 15px;
+}
+.build-stage {
+  color: var(--muted);
+  font-size: 12px;
+}
+.build-btn {
+  width: 100%;
+}
+.build-max {
+  text-align: center;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* classroom village map */
+.village-map {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  background: linear-gradient(180deg, #1f3d2a, #20284e);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px;
+}
+.plot {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 4px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  color: var(--ink);
+  position: relative;
+}
+.plot:active {
+  transform: scale(0.96);
+}
+.plot.mine {
+  border-color: var(--accent);
+  background: rgba(255, 209, 102, 0.12);
+}
+.plot-house {
+  font-size: 36px;
+  line-height: 1;
+}
+.plot-avatar {
+  font-size: 18px;
+  margin-top: -6px;
+}
+.plot-name {
+  font-size: 11px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
 /* home nav */
 .home-nav {
   display: flex;

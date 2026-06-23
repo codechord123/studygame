@@ -21,6 +21,7 @@ import {
 import { firebaseConfig } from './config'
 import { emptyProfile, normalizeProfile, type PlayerProfile } from '../../game/gamification'
 import type { RankEntry } from '../../game/progression'
+import { houseStageFromXp, type Classmate } from '../../game/world'
 import type { Store, WrongNote } from '../storage'
 
 // Store 인터페이스의 Firestore 구현. localStore 와 1:1 로 호환되므로
@@ -79,11 +80,14 @@ export const firebaseStore: Store = {
     if (snap.exists()) await setDoc(ref, { resolved: true }, { merge: true })
   },
 
-  async submitScore(name, score) {
+  async syncProfile(p) {
     const id = await uid()
     await setDoc(doc(db, 'leaderboard', id), {
-      name,
-      score,
+      name: p.characterName || '이웃',
+      score: p.bestScore,
+      xp: p.xp,
+      avatar: p.avatar,
+      houseStage: p.houseStage,
       updatedAt: serverTimestamp(),
     })
   },
@@ -95,6 +99,23 @@ export const firebaseStore: Store = {
     return snap.docs.map((d) => {
       const data = d.data() as { name: string; score: number }
       return { name: data.name, score: data.score, me: d.id === me } as RankEntry
+    })
+  },
+
+  async loadClassmates() {
+    const q = query(collection(db, 'leaderboard'), orderBy('xp', 'desc'), limit(30))
+    const snap = await getDocs(q)
+    const me = await uid()
+    return snap.docs.map((d) => {
+      const v = d.data() as { name: string; xp?: number; avatar?: string; houseStage?: number }
+      const xp = v.xp ?? 0
+      return {
+        name: v.name,
+        avatar: v.avatar ?? '🐱',
+        xp,
+        houseStage: v.houseStage ?? houseStageFromXp(xp),
+        me: d.id === me,
+      } as Classmate
     })
   },
 }

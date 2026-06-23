@@ -31,13 +31,29 @@ import {
   FURNITURE,
   furnitureById,
   INTRO_STORY,
+  HOUSE_STAGES,
+  houseInfo,
+  nextHouseCost,
+  CLASSMATES,
   type Villager,
   type Furniture,
+  type Classmate,
 } from './game/world'
+import { orderByMastery, updateEntry, type MasteryMap } from './game/mastery'
 import { VILLAGER_PROBLEMS } from './data/villagerQuizzes'
 import type { Problem } from './types/problem'
 
-type Screen = 'town' | 'quiz' | 'result' | 'wrong' | 'ai' | 'shop' | 'missions' | 'ranking' | 'room'
+type Screen =
+  | 'town'
+  | 'quiz'
+  | 'result'
+  | 'wrong'
+  | 'ai'
+  | 'shop'
+  | 'missions'
+  | 'ranking'
+  | 'room'
+  | 'class'
 
 interface SessionState {
   problems: Problem[]
@@ -50,6 +66,7 @@ interface SessionState {
   correct: number
   gained: number
   wrong: WrongNote[]
+  masteryUpdates: MasteryMap // 이번 세션의 문항별 숙련도 변화
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -61,11 +78,9 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-function prepareProblems(problems: Problem[], mode: PlayMode, wrongIds: Set<string>): Problem[] {
-  if (mode === 'challenge') return shuffle(problems)
-  const wrong = problems.filter((p) => wrongIds.has(p.id))
-  const rest = problems.filter((p) => !wrongIds.has(p.id))
-  return [...wrong, ...rest]
+// 학습 모드: 숙련도 기반 출제(안 푼 것→틀린 것→덜 익숙한 것 순) / 도전: 셔플
+function prepareProblems(problems: Problem[], mode: PlayMode, mastery: MasteryMap): Problem[] {
+  return mode === 'challenge' ? shuffle(problems) : orderByMastery(problems, mastery)
 }
 
 export default function App() {
@@ -116,7 +131,7 @@ export default function App() {
   function renameCharacter(name: string) {
     const next = { ...profile, characterName: name }
     persist(next)
-    if (next.bestScore > 0) store.submitScore?.(name, next.bestScore).catch(() => {})
+    store.syncProfile?.(next).catch(() => {})
   }
   function claimMission(id: string, reward: number) {
     if (profile.daily.claimed.includes(id)) return
@@ -130,9 +145,8 @@ export default function App() {
   const { level, cur, need } = levelProgress(profile.xp)
 
   function startQuiz(problems: Problem[], mode: PlayMode, villager?: Villager) {
-    const wrongIds = new Set(wrongNotes.filter((n) => !n.resolved).map((n) => n.problem.id))
     setSession({
-      problems: prepareProblems(problems, mode, wrongIds),
+      problems: prepareProblems(problems, mode, profile.mastery),
       mode,
       villagerId: villager?.id,
       villagerName: villager?.name,
@@ -142,9 +156,23 @@ export default function App() {
       correct: 0,
       gained: 0,
       wrong: [],
+      masteryUpdates: {},
     })
     setEarnedBadges([])
     setScreen('quiz')
+  }
+
+  function exitQuiz() {
+    if (window.confirm('지금 나가면 이번 풀이는 저장되지 않아요. 마을로 돌아갈까요?')) {
+      setSession(null)
+      setScreen('town')
+    }
+  }
+
+  function upgradeHouse() {
+    const cost = nextHouseCost(profile.houseStage)
+    if (cost == null || profile.coins < cost) return
+    persist({ ...profile, coins: profile.coins - cost, houseStage: profile.houseStage + 1 })
   }
 
   async function handleSubmit(r: { correct: boolean; responses: string[]; timeLeftRatio: number }) {
@@ -169,6 +197,14 @@ export default function App() {
       await store.markResolved(problem.id)
     }
 
+    const masteryUpdates: MasteryMap = {
+      ...session.masteryUpdates,
+      [problem.id]: updateEntry(
+        session.masteryUpdates[problem.id] ?? profile.mastery[problem.id],
+        r.correct,
+      ),
+    }
+
     const next: SessionState = {
       ...session,
       combo,
@@ -176,6 +212,7 @@ export default function App() {
       correct: session.correct + (r.correct ? 1 : 0),
       gained: session.gained + gained,
       wrong,
+      masteryUpdates,
       i: session.i + 1,
     }
 
@@ -202,6 +239,7 @@ export default function App() {
       correctCount: profile.correctCount + s.correct,
       bestScore: Math.max(profile.bestScore, score),
       villagerFriends,
+      mastery: { ...profile.mastery, ...s.masteryUpdates },
       daily: {
         ...profile.daily,
         solved: profile.daily.solved + s.problems.length,
@@ -220,9 +258,7 @@ export default function App() {
     setProfile(updated)
     setEarnedBadges(fresh)
     await store.saveProfile(updated)
-    if (updated.bestScore > profile.bestScore && updated.characterName) {
-      store.submitScore?.(updated.characterName, updated.bestScore).catch(() => {})
-    }
+    store.syncProfile?.(updated).catch(() => {}) // 랭킹·우리반 공간에 내 정보 반영
     setWrongNotes(await store.loadWrongNotes())
     setSession({ ...s, gained: s.gained })
     setScreen('result')
@@ -283,6 +319,7 @@ export default function App() {
           combo={session.combo}
           mode={session.mode}
           onSubmit={handleSubmit}
+          onExit={exitQuiz}
         />
       )}
 
@@ -327,9 +364,14 @@ export default function App() {
           level={level}
           onAvatar={setAvatar}
           onRename={renameCharacter}
+          onUpgrade={upgradeHouse}
           onShop={() => setScreen('shop')}
           onBack={() => setScreen('town')}
         />
+      )}
+
+      {screen === 'class' && (
+        <Classroom profile={profile} level={level} onBack={() => setScreen('town')} />
       )}
 
       {screen === 'missions' && (
@@ -484,6 +526,7 @@ function Town(props: {
       <h3 className="section-label">마을 시설</h3>
       <div className="building-grid">
         <BuildingBtn emoji="🏠" label="내 집" onClick={() => props.onNav('room')} />
+        <BuildingBtn emoji="🗺️" label="우리 반" onClick={() => props.onNav('class')} />
         <BuildingBtn emoji="🛍️" label="상점" onClick={() => props.onNav('shop')} />
         <BuildingBtn
           emoji="🎯"
@@ -578,6 +621,7 @@ function Room(props: {
   level: number
   onAvatar: (a: string) => void
   onRename: (n: string) => void
+  onUpgrade: () => void
   onShop: () => void
   onBack: () => void
 }) {
@@ -585,12 +629,16 @@ function Room(props: {
   const [name, setName] = useState(profile.characterName)
   const placed = profile.furniture.map(furnitureById).filter(Boolean) as Furniture[]
   const hat = cosmeticById(profile.equipped)?.emoji
+  const house = houseInfo(profile.houseStage)
+  const nextCost = nextHouseCost(profile.houseStage)
+  const canUpgrade = nextCost != null && profile.coins >= nextCost
 
   return (
     <main className="screen room">
       <h1 className="title">🏠 {profile.characterName}의 집</h1>
 
       <div className="room-stage">
+        <div className="house-big">{house.emoji}</div>
         <div className="room-floor">
           {placed.length === 0 ? (
             <span className="room-empty">상점에서 가구를 사면 여기에 놓여요</span>
@@ -606,6 +654,25 @@ function Room(props: {
           {hat && <span className="pet-hat big">{hat}</span>}
           {profile.avatar}
         </div>
+      </div>
+
+      {/* 집 짓기: 문제로 모은 벨로 단계 올리기 */}
+      <div className="build-box">
+        <div className="build-info">
+          <b>
+            {house.emoji} {house.name}
+          </b>
+          <span className="build-stage">
+            {profile.houseStage + 1} / {HOUSE_STAGES.length} 단계
+          </span>
+        </div>
+        {nextCost == null ? (
+          <span className="build-max">최고 단계 달성! 🎉</span>
+        ) : (
+          <button className="btn primary build-btn" disabled={!canUpgrade} onClick={props.onUpgrade}>
+            🔨 다음 단계로 짓기 · 🔔 {nextCost}
+          </button>
+        )}
       </div>
 
       <p className="subtitle">
@@ -641,6 +708,77 @@ function Room(props: {
       <button className="btn accent big" onClick={props.onShop}>
         🛍️ 옷·가구 사러 가기
       </button>
+      <button className="btn ghost big" onClick={props.onBack}>
+        마을로
+      </button>
+    </main>
+  )
+}
+
+// ── 우리 반 (가상 공간 + 각자의 집) ───────────────────────────────
+function Classroom(props: { profile: PlayerProfile; level: number; onBack: () => void }) {
+  const live = Boolean(store.loadClassmates)
+  const me: Classmate = {
+    name: props.profile.characterName,
+    avatar: props.profile.avatar,
+    xp: props.profile.xp,
+    houseStage: props.profile.houseStage,
+    me: true,
+  }
+  const [mates, setMates] = useState<Classmate[]>(() =>
+    [...CLASSMATES, me].sort((a, b) => b.xp - a.xp),
+  )
+  const [picked, setPicked] = useState<Classmate | null>(null)
+
+  useEffect(() => {
+    if (!store.loadClassmates) return
+    store
+      .loadClassmates()
+      .then((data) => {
+        if (data.length > 0) setMates(data.sort((a, b) => b.xp - a.xp))
+      })
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <main className="screen classroom">
+      <h1 className="title">🗺️ 우리 반 마을</h1>
+      <p className="subtitle">
+        친구들이 각자 집을 짓고 있어요{live ? ' · 실시간' : ''} · 문제를 풀수록 내 집이 커져요
+      </p>
+
+      <div className="village-map">
+        {mates.map((c, i) => (
+          <button
+            key={c.name + i}
+            className={`plot ${c.me ? 'mine' : ''}`}
+            onClick={() => setPicked(c)}
+          >
+            <span className="plot-house">{houseInfo(c.houseStage).emoji}</span>
+            <span className="plot-avatar">{c.avatar}</span>
+            <span className="plot-name">{c.me ? '나' : c.name}</span>
+          </button>
+        ))}
+      </div>
+
+      {picked && (
+        <div className="modal-backdrop" onClick={() => setPicked(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-emoji">{houseInfo(picked.houseStage).emoji}</div>
+            <div className="modal-name">
+              {picked.avatar} {picked.me ? `${picked.name} (나)` : picked.name}
+            </div>
+            <p className="modal-line">
+              {houseInfo(picked.houseStage).name} · {picked.xp} 경험치
+            </p>
+            <button className="btn ghost big" onClick={() => setPicked(null)}>
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
+
       <button className="btn ghost big" onClick={props.onBack}>
         마을로
       </button>

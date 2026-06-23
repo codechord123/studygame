@@ -11,6 +11,8 @@ interface Props {
   combo: number
   mode: PlayMode
   onSubmit: (result: { correct: boolean; responses: string[]; timeLeftRatio: number }) => void
+  /** 풀이 도중 마을로 나가기 */
+  onExit?: () => void
 }
 
 /** 도전 모드 제한 시간: 난이도 + 문제 길이에 따라 가변 */
@@ -20,7 +22,7 @@ function challengeTime(problem: Problem): number {
   return base + long
 }
 
-export function QuestionCard({ problem, index, total, combo, mode, onSubmit }: Props) {
+export function QuestionCard({ problem, index, total, combo, mode, onSubmit, onExit }: Props) {
   const timeLimit = mode === 'challenge' ? challengeTime(problem) : 0
   const blankCount = problem.type === 'fill_blank' ? problem.blanks.length : 1
   const [responses, setResponses] = useState<string[]>(() => Array(blankCount).fill(''))
@@ -96,6 +98,11 @@ export function QuestionCard({ problem, index, total, combo, mode, onSubmit }: P
   return (
     <div className="card question-card">
       <div className="q-meta">
+        {onExit && (
+          <button className="q-exit" onClick={onExit} title="마을로 나가기">
+            ← 나가기
+          </button>
+        )}
         <span className="q-progress">
           {index + 1} / {total}
         </span>

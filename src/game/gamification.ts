@@ -24,6 +24,8 @@ export interface PlayerProfile {
   avatar: string // 선택한 동물 아바타(이모지)
   furniture: string[] // 보유한 가구 id (집 꾸미기)
   villagerFriends: Record<string, number> // 주민별 친밀도 점수
+  houseStage: number // 집 짓기 단계 (0~5)
+  mastery: Record<string, { seen: number; streak: number; wrong: boolean }> // 문항별 숙련도
 }
 
 export function todayStr(d = new Date()): string {
@@ -48,6 +50,8 @@ export const emptyProfile: PlayerProfile = {
   avatar: '🐱',
   furniture: [],
   villagerFriends: {},
+  houseStage: 0,
+  mastery: {},
 }
 
 /** 저장된 프로필을 최신 스키마로 보정 + 날짜 바뀌면 일일 상태 초기화 */
@@ -56,6 +60,7 @@ export function normalizeProfile(p: Partial<PlayerProfile> | null | undefined): 
   merged.daily = { ...emptyProfile.daily, ...(p?.daily ?? {}) }
   merged.villagerFriends = { ...(p?.villagerFriends ?? {}) }
   merged.furniture = [...(p?.furniture ?? [])]
+  merged.mastery = { ...(p?.mastery ?? {}) }
   if (merged.daily.date !== todayStr()) {
     merged.daily = { date: todayStr(), solved: 0, bestCombo: 0, claimed: [] }
   }
