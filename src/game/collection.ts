@@ -64,6 +64,14 @@ export function unitCards(mastery: MasteryMap): UnitCard[] {
   return cards.sort((a, b) => b.mastered - a.mastered)
 }
 
+/** 모든 문항을 익힌 '완성 단원'의 키 목록 (보상 지급 비교용) */
+export function completedUnitKeys(mastery: MasteryMap): string[] {
+  return unitCards(mastery)
+    .filter((c) => c.done)
+    .map((c) => c.subject + '|' + c.unit)
+}
+export const UNIT_REWARD = 25 // 단원 완성 시 보너스 벨
+
 // ── 전시 트로피 (집에 진열) ───────────────────────────────────────
 export interface Trophy {
   id: string

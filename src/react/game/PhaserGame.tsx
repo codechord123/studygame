@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type Phaser from 'phaser'
 import { bridge, inputState } from '../../game/bridge'
 
@@ -13,13 +13,17 @@ interface Props {
 export function PhaserGame({ avatar, coins, carrots, onExit }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<Phaser.Game | null>(null)
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
     let destroyed = false
-    import('../../game/main').then(({ createGame }) => {
-      if (destroyed || !containerRef.current) return
-      gameRef.current = createGame(containerRef.current, { avatar, coins, carrots })
-    })
+    import('../../game/main')
+      .then(({ createGame }) => {
+        if (destroyed || !containerRef.current) return
+        gameRef.current = createGame(containerRef.current, { avatar, coins, carrots })
+        setReady(true)
+      })
+      .catch((e) => console.error('필드 로드 실패', e))
     const onExitEv = () => onExit()
     bridge.on('phaser:exit', onExitEv)
     return () => {
@@ -47,7 +51,9 @@ export function PhaserGame({ avatar, coins, carrots, onExit }: Props) {
 
   return (
     <div className="phaser-screen">
-      <div className="phaser-canvas" ref={containerRef} />
+      <div className="phaser-canvas" ref={containerRef}>
+        {!ready && <div className="phaser-loading">🌳 필드를 불러오는 중…</div>}
+      </div>
       <button className="phaser-exit" onClick={onExit}>
         ← 나가기
       </button>

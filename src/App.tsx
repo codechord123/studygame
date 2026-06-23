@@ -42,7 +42,7 @@ import {
   type Classmate,
 } from './game/world'
 import { orderByMastery, updateEntry, type MasteryMap } from './game/mastery'
-import { subjectStats, unitCards, trophies } from './game/collection'
+import { subjectStats, unitCards, trophies, completedUnitKeys, UNIT_REWARD } from './game/collection'
 import { VILLAGER_PROBLEMS } from './data/villagerQuizzes'
 import type { Problem } from './types/problem'
 
@@ -58,6 +58,7 @@ type Screen =
   | 'room'
   | 'game'
   | 'dex'
+  | 'dashboard'
 
 function getCarrots(): number {
   return Number(localStorage.getItem('sg.carrots') || '0')
@@ -106,6 +107,7 @@ export default function App() {
   const [aiVillager, setAiVillager] = useState<Villager | null>(null)
   const [classmates, setClassmates] = useState<Classmate[]>(CLASSMATES)
   const [gameSession, setGameSession] = useState<SessionState | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
   const bridgeRef = useRef<{
     ui: (d: { type: FacilityScreen }) => void
     villager: (d: { id: string }) => void
@@ -275,6 +277,13 @@ export default function App() {
         bestCombo: Math.max(profile.daily.bestCombo, s.bestCombo),
       },
     }
+    // 단원 완성 보상: 새로 '완성'된 단원마다 보너스 벨
+    const claimed = new Set(profile.dexRewards)
+    const newlyDone = completedUnitKeys(updated.mastery).filter((k) => !claimed.has(k))
+    if (newlyDone.length) {
+      updated.coins += newlyDone.length * UNIT_REWARD
+      updated.dexRewards = [...profile.dexRewards, ...newlyDone]
+    }
     const fresh = newlyEarnedBadges({
       profile: updated,
       sessionCorrect: s.correct,
@@ -414,6 +423,12 @@ export default function App() {
     return <Onboarding onDone={finishOnboarding} />
   }
 
+  function go(s: Screen) {
+    setMenuOpen(false)
+    setGameSession(null)
+    setScreen(s)
+  }
+
   return (
     <div className="app">
       <Hud
@@ -426,7 +441,14 @@ export default function App() {
         coins={profile.coins}
         cosmetic={cosmeticById(profile.equipped)?.emoji}
         onProfile={() => setScreen('room')}
+        onMenu={() => setMenuOpen(true)}
       />
+
+      {menuOpen && <MainMenu onGo={go} onClose={() => setMenuOpen(false)} />}
+
+      {screen === 'dashboard' && (
+        <Dashboard profile={profile} level={level} cur={cur} need={need} onGo={go} />
+      )}
 
       {screen === 'town' && (
         <TownMap
@@ -623,6 +645,7 @@ function Hud(props: {
   coins: number
   cosmetic?: string
   onProfile: () => void
+  onMenu: () => void
 }) {
   return (
     <header className="hud">
@@ -647,7 +670,127 @@ function Hud(props: {
         </div>
       </div>
       <div className="coins">🔔 {props.coins}</div>
+      <button className="menu-btn" onClick={props.onMenu} title="메뉴" aria-label="메뉴">
+        ☰
+      </button>
     </header>
+  )
+}
+
+// ── 메뉴 (어디서든 빠른 이동 = 대시보드 허브) ─────────────────────
+function MainMenu(props: { onGo: (s: Screen) => void; onClose: () => void }) {
+  const items: { s: Screen; emoji: string; label: string }[] = [
+    { s: 'dashboard', emoji: '📊', label: '학습 현황' },
+    { s: 'town', emoji: '🗺️', label: '마을' },
+    { s: 'game', emoji: '🎮', label: '필드 (픽셀)' },
+    { s: 'dex', emoji: '📜', label: '학습 도감' },
+    { s: 'wrong', emoji: '📒', label: '오답노트' },
+    { s: 'ai', emoji: '🤖', label: '문제공방' },
+    { s: 'shop', emoji: '🛍️', label: '상점' },
+    { s: 'missions', emoji: '🎯', label: '미션' },
+    { s: 'ranking', emoji: '🏆', label: '랭킹' },
+    { s: 'room', emoji: '🏠', label: '내 집' },
+  ]
+  return (
+    <div className="modal-backdrop" onClick={props.onClose}>
+      <div className="menu-sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="menu-grid">
+          {items.map((it) => (
+            <button key={it.s} className="menu-item" onClick={() => props.onGo(it.s)}>
+              <span className="menu-emoji">{it.emoji}</span>
+              <span className="menu-label">{it.label}</span>
+            </button>
+          ))}
+        </div>
+        <button className="btn ghost big" onClick={props.onClose}>
+          닫기
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── 학습 현황 대시보드 ────────────────────────────────────────────
+function Dashboard(props: {
+  profile: PlayerProfile
+  level: number
+  cur: number
+  need: number
+  onGo: (s: Screen) => void
+}) {
+  const p = props.profile
+  const subjects = subjectStats(p.mastery)
+  const accuracy = p.solvedCount ? Math.round((p.correctCount / p.solvedCount) * 100) : 0
+  const wonTrophies = trophies(p, p.mastery).filter((t) => t.earned).length
+  const totalTrophies = trophies(p, p.mastery).length
+  const friends = Object.values(p.villagerFriends).filter((v) => v > 0).length
+
+  return (
+    <main className="screen dashboard">
+      <h1 className="title">📊 {p.characterName}의 학습 현황</h1>
+      <p className="subtitle">
+        {titleForLevel(props.level)} · Lv.{props.level} ({props.cur}/{props.need} XP)
+      </p>
+
+      <div className="stat-grid">
+        <Stat emoji="🔥" label="최고 콤보" value={`${p.bestCombo}`} />
+        <Stat emoji="🎯" label="정답률" value={`${accuracy}%`} />
+        <Stat emoji="✅" label="누적 정답" value={`${p.correctCount}`} />
+        <Stat emoji="📚" label="푼 문제" value={`${p.solvedCount}`} />
+        <Stat emoji="🏆" label="전시품" value={`${wonTrophies}/${totalTrophies}`} />
+        <Stat emoji="🏠" label="집 단계" value={`${p.houseStage + 1}`} />
+        <Stat emoji="❤️" label="친한 주민" value={`${friends}`} />
+        <Stat emoji="🔔" label="벨" value={`${p.coins}`} />
+      </div>
+
+      <h3 className="section-label">오늘</h3>
+      <div className="today-row">
+        <Stat emoji="📝" label="오늘 푼 문제" value={`${p.daily.solved}`} />
+        <Stat emoji="🔥" label="오늘 최고 콤보" value={`${p.daily.bestCombo}`} />
+      </div>
+
+      <h3 className="section-label">과목 숙련도</h3>
+      {subjects.length === 0 ? (
+        <p className="empty">아직 기록이 없어요. 마을에서 주민과 공부해 보세요!</p>
+      ) : (
+        <div className="dex-subjects">
+          {subjects.map((s) => {
+            const pct = s.seen ? Math.round((s.mastered / s.seen) * 100) : 0
+            return (
+              <div key={s.subject} className="dex-subject">
+                <span className="dex-emoji">{s.emoji}</span>
+                <div className="dex-sub-body">
+                  <div className="dex-sub-top">
+                    <b>{s.subject}</b>
+                    <span className="dex-sub-num">익힘 {s.mastered} / {s.seen}</span>
+                  </div>
+                  <div className="mission-bar">
+                    <div className="mission-bar-fill" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      <button className="btn primary big" onClick={() => props.onGo('town')}>
+        🗺️ 마을에서 공부하기
+      </button>
+      <button className="btn ghost big" onClick={() => props.onGo('dex')}>
+        📜 학습 도감 보기
+      </button>
+    </main>
+  )
+}
+
+function Stat(props: { emoji: string; label: string; value: string }) {
+  return (
+    <div className="stat-card">
+      <span className="stat-emoji">{props.emoji}</span>
+      <span className="stat-value">{props.value}</span>
+      <span className="stat-label">{props.label}</span>
+    </div>
   )
 }
 

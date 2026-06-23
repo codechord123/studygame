@@ -1025,6 +1025,96 @@ body {
   transform: scale(0.94);
 }
 
+/* HUD 메뉴 버튼 */
+.menu-btn {
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: 10px;
+  width: 34px;
+  height: 34px;
+  font-size: 18px;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.menu-btn:active {
+  transform: scale(0.94);
+}
+
+/* 메뉴 시트 */
+.menu-sheet {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 18px;
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: slidein 0.2s ease;
+}
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.menu-item {
+  background: #161a33;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: 14px;
+  padding: 14px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+.menu-item:active {
+  transform: scale(0.95);
+}
+.menu-emoji {
+  font-size: 26px;
+}
+.menu-label {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* 대시보드 */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.today-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.stat-emoji {
+  font-size: 20px;
+}
+.stat-value {
+  font-size: 17px;
+  font-weight: 800;
+}
+.stat-label {
+  font-size: 10px;
+  color: var(--muted);
+}
+
 /* 학습 도감 */
 .dex-subjects {
   display: flex;
@@ -1151,6 +1241,16 @@ body {
 .phaser-canvas canvas {
   border-radius: 18px;
   display: block;
+}
+.phaser-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
 }
 .phaser-exit {
   position: absolute;

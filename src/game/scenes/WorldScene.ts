@@ -28,6 +28,7 @@ export class WorldScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Body & { go?: Phaser.GameObjects.Text }
   private playerObj!: Phaser.GameObjects.Text
   private obstacles!: Phaser.Physics.Arcade.StaticGroup
+  private buildingBlocks: Phaser.GameObjects.GameObject[] = []
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
   private keys!: Record<string, Phaser.Input.Keyboard.Key>
   private interactables: Interactable[] = []
@@ -103,10 +104,10 @@ export class WorldScene extends Phaser.Scene {
         .setOrigin(0.5)
         .setPadding(3, 1, 3, 1)
         .setDepth(5)
-      // 충돌 바디
+      // 충돌 바디 (정적). StaticGroup 대신 개별 충돌로 분리해 안정성 확보.
       const block = this.add.rectangle(px(b.x), px(b.y), TILE, TILE).setVisible(false)
       this.physics.add.existing(block, true)
-      this.obstacles.add(block as unknown as Phaser.GameObjects.GameObject)
+      this.buildingBlocks.push(block)
       this.interactables.push({ x: b.x, y: b.y, type: 'facility', facility: b.facility, label: b.label, obj: icon })
     })
   }
@@ -151,6 +152,7 @@ export class WorldScene extends Phaser.Scene {
     this.player.setSize(24, 24)
     this.player.setCollideWorldBounds(true)
     this.physics.add.collider(this.playerObj, this.obstacles)
+    this.physics.add.collider(this.playerObj, this.buildingBlocks)
   }
 
   private createPrompt() {
