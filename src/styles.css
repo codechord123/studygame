@@ -1498,6 +1498,113 @@ body {
   text-align: right;
 }
 
+/* ── OX 빨리 누르기 ────────────────────────────────────────────── */
+.ox-game {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ox-score {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--accent);
+}
+.ox-question {
+  font-size: 18px;
+  line-height: 1.5;
+  margin: 4px 0 0;
+}
+.ox-candidate {
+  background: #0e1126;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 16px;
+}
+.ox-ask {
+  color: var(--muted);
+  font-size: 13px;
+}
+.ox-buttons {
+  display: flex;
+  gap: 12px;
+}
+.ox-big {
+  flex: 1;
+  font-size: 48px;
+  padding: 18px 0;
+  border-radius: 18px;
+  border: 2px solid var(--line);
+  background: #161a33;
+  cursor: pointer;
+}
+.ox-big:active {
+  transform: scale(0.96);
+}
+.ox-big.ok {
+  border-color: var(--good);
+  background: rgba(46, 204, 113, 0.18);
+}
+.ox-big.no {
+  border-color: var(--bad);
+  background: rgba(255, 107, 107, 0.18);
+}
+
+/* ── 카드 뒤집기 ──────────────────────────────────────────────── */
+.memory-game {
+  margin-top: 18px;
+}
+.memory-hint {
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  margin: 6px 0 12px;
+}
+.memory-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.mcard {
+  aspect-ratio: 3 / 4;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: linear-gradient(145deg, var(--primary2), var(--primary));
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  transition: transform 0.12s ease;
+}
+.mcard:active {
+  transform: scale(0.97);
+}
+.mcard.up {
+  background: var(--card);
+  border-color: var(--theme, var(--line));
+}
+.mcard.up.side-a {
+  background: #1a2a22;
+  border-color: var(--good);
+}
+.mcard.matched {
+  opacity: 0.45;
+}
+.mcard-back {
+  font-size: 28px;
+  font-weight: 900;
+  color: #fff;
+}
+.mcard-text {
+  font-size: 12px;
+  line-height: 1.3;
+  text-align: center;
+  color: var(--ink);
+  word-break: break-word;
+}
+
 /* 단원 선택 */
 .units-head {
   display: flex;

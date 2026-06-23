@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { QuestionCard, type PlayMode } from './components/QuestionCard'
+import { SpeedOxGame, type GameResult } from './components/SpeedOxGame'
+import { MemoryGame } from './components/MemoryGame'
 import { TownMap, type FacilityScreen } from './components/TownMap'
 import { AiMaker } from './components/AiMaker'
 import { PhaserGame } from './react/game/PhaserGame'
@@ -30,7 +32,7 @@ import {
   type Slot,
   type CostumeItem,
 } from './game/costume'
-import { MINIGAMES, type MiniGame } from './game/minigames'
+import { MINIGAMES, miniGameById, type MiniGame } from './game/minigames'
 import {
   TOWN_NAME,
   AVATARS,
@@ -350,6 +352,55 @@ export default function App() {
     setScreen('result')
   }
 
+  // 미니게임(OX·메모리) 결과 → 기존 보상/숙련도 파이프라인으로 마감
+  async function finishFromResults(
+    problems: Problem[],
+    results: GameResult[],
+    villager?: Villager,
+    miniGameId?: string,
+  ) {
+    let combo = 0
+    let bestCombo = 0
+    let correct = 0
+    let gained = 0
+    const masteryUpdates: MasteryMap = {}
+    const wrong: WrongNote[] = []
+    for (const r of results) {
+      const p = problems.find((x) => x.id === r.id)
+      if (!p) continue
+      if (r.correct) {
+        combo += 1
+        bestCombo = Math.max(bestCombo, combo)
+        correct += 1
+        gained += computeScore({ basePoints: p.points, combo })
+        await store.markResolved(p.id)
+      } else {
+        combo = 0
+        const note: WrongNote = { problem: p, userResponses: [], wrongAt: Date.now(), resolved: false }
+        wrong.push(note)
+        await store.upsertWrongNote(note)
+      }
+      masteryUpdates[p.id] = updateEntry(masteryUpdates[p.id] ?? profile.mastery[p.id], r.correct, {
+        subject: p.subject,
+        unit: p.unit,
+      })
+    }
+    await finishSession({
+      problems,
+      mode: 'challenge',
+      villagerId: villager?.id,
+      villagerName: villager?.name,
+      miniGameId,
+      i: problems.length,
+      combo,
+      bestCombo,
+      correct,
+      gained,
+      wrong,
+      masteryUpdates,
+    })
+  }
+
   function talkAndStudy(v: Villager, mode: PlayMode) {
     const problems = VILLAGER_PROBLEMS[v.id]
     if (problems && problems.length) startQuiz(problems, mode, v)
@@ -557,24 +608,49 @@ export default function App() {
         />
       )}
 
-      {screen === 'quiz' && session && (
-        <div className="play-wrap">
-          {session.miniGameId === 'battle' && (
-            <BattleBar correct={session.correct} total={session.problems.length} />
-          )}
-          <QuestionCard
-            key={session.problems[session.i].id}
-            problem={session.problems[session.i]}
-            index={session.i}
-            total={session.problems.length}
-            combo={session.combo}
-            mode={session.mode}
-            theme={themeOf(session.problems[session.i].subject)}
-            onSubmit={handleSubmit}
-            onExit={exitQuiz}
-          />
-        </div>
-      )}
+      {screen === 'quiz' && session && (() => {
+        const kind = miniGameById(session.miniGameId ?? '')?.kind ?? 'card'
+        const theme = themeOf(session.problems[session.i]?.subject)
+        const villager = session.villagerId ? villagerById(session.villagerId) : undefined
+        if (kind === 'ox') {
+          return (
+            <SpeedOxGame
+              problems={session.problems}
+              theme={theme}
+              onComplete={(res) => finishFromResults(session.problems, res, villager, session.miniGameId)}
+              onExit={exitQuiz}
+            />
+          )
+        }
+        if (kind === 'memory') {
+          return (
+            <MemoryGame
+              problems={session.problems}
+              theme={theme}
+              onComplete={(res) => finishFromResults(session.problems, res, villager, session.miniGameId)}
+              onExit={exitQuiz}
+            />
+          )
+        }
+        return (
+          <div className="play-wrap">
+            {session.miniGameId === 'battle' && (
+              <BattleBar correct={session.correct} total={session.problems.length} />
+            )}
+            <QuestionCard
+              key={session.problems[session.i].id}
+              problem={session.problems[session.i]}
+              index={session.i}
+              total={session.problems.length}
+              combo={session.combo}
+              mode={session.mode}
+              theme={theme}
+              onSubmit={handleSubmit}
+              onExit={exitQuiz}
+            />
+          </div>
+        )
+      })()}
 
       {screen === 'result' && session && (
         <Result
