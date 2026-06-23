@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { QuestionCard, type PlayMode } from './components/QuestionCard'
 import { SpeedOxGame, type GameResult } from './components/SpeedOxGame'
 import { MemoryGame } from './components/MemoryGame'
+import { AcidRainGame } from './components/AcidRainGame'
+import { MoleGame } from './components/MoleGame'
 import { TownMap, type FacilityScreen } from './components/TownMap'
 import { AiMaker } from './components/AiMaker'
 import { ProblemCreate } from './components/ProblemCreate'
@@ -666,6 +668,26 @@ export default function App() {
             />
           )
         }
+        if (kind === 'rain') {
+          return (
+            <AcidRainGame
+              problems={session.problems}
+              theme={theme}
+              onComplete={(res) => finishFromResults(session.problems, res, villager, session.miniGameId)}
+              onExit={exitQuiz}
+            />
+          )
+        }
+        if (kind === 'mole') {
+          return (
+            <MoleGame
+              problems={session.problems}
+              theme={theme}
+              onComplete={(res) => finishFromResults(session.problems, res, villager, session.miniGameId)}
+              onExit={exitQuiz}
+            />
+          )
+        }
         return (
           <div className="play-wrap">
             {session.miniGameId === 'battle' && (
@@ -679,6 +701,7 @@ export default function App() {
               combo={session.combo}
               mode={session.mode}
               theme={theme}
+              autoAdvance={session.miniGameId !== 'fill'}
               onSubmit={handleSubmit}
               onExit={exitQuiz}
             />

@@ -1,30 +1,32 @@
 import type { PlayMode } from '../components/QuestionCard'
 import type { Problem } from '../types/problem'
 
-// 한 단원을 푸는 여러 미니게임. 게임마다 '성향(pool)'이 달라, 그에 맞는 문제만 골라 푼다.
-//  - kind 'card'   : 기본 문제 카드(QuestionCard). mode 로 학습/도전 구분
+// 한 단원을 푸는 여러 미니게임. 게임마다 '성향'과 '방식(kind)'이 모두 달라 다양하게 즐긴다.
+//  - kind 'card'   : 문제 카드(QuestionCard). mode 로 학습/도전 구분
 //  - kind 'ox'     : OX 빨리 누르기 (보여준 답이 맞는지 판단)
-//  - kind 'memory' : 카드 뒤집기 (문제↔답 짝 맞추기)
-// pool: 문제의 tags 에서 같은 값을 가진 문제만 뽑는다. 'all' 이면 단원 전체에서 골고루.
+//  - kind 'memory' : 4×4 카드 뒤집기 (문제↔답 짝 맞추기)
+//  - kind 'rain'   : 산성비 피하기 (정답 빗방울 받기 / 오답 피하기) — 아케이드
+//  - kind 'mole'   : 두더지 잡기 (정답을 든 두더지 콩!) — 아케이드
+// pool: 문제 tags 에서 같은 값을 가진 문제만 뽑는다. 'all' 이면 단원 전체에서 골고루.
 // count: 한 판에 푸는 문제 수.
 export interface MiniGame {
   id: string
   emoji: string
   name: string
   desc: string
-  kind: 'card' | 'ox' | 'memory'
+  kind: 'card' | 'ox' | 'memory' | 'rain' | 'mole'
   mode: PlayMode
   pool: string
   count: number
 }
 
 export const MINIGAMES: MiniGame[] = [
-  { id: 'study',  emoji: '📖', name: '차근차근',    desc: '타이머 없이 정답·풀이를 확인하며',  kind: 'card',   mode: 'study',     pool: 'all',    count: 12 },
-  { id: 'speed',  emoji: '⚡', name: '스피드 퀴즈',  desc: '짧은 문제를 빠르게! 콤보 보너스',    kind: 'card',   mode: 'challenge', pool: 'speed',  count: 12 },
-  { id: 'battle', emoji: '⚔️', name: '몬스터 배틀',  desc: '어려운 문제로 몬스터를 물리쳐요',    kind: 'card',   mode: 'challenge', pool: 'battle', count: 10 },
-  { id: 'ox',     emoji: '🆗', name: 'OX 진실 게임', desc: '맞으면 O, 틀리면 X 빠르게 판단!',    kind: 'ox',     mode: 'challenge', pool: 'ox',     count: 14 },
-  { id: 'memory', emoji: '🃏', name: '짝꿍 카드',    desc: '용어와 뜻을 짝지어 뒤집어요',        kind: 'memory', mode: 'study',     pool: 'memory', count: 6 },
-  { id: 'fill',   emoji: '🔲', name: '빈칸 술술',    desc: '핵심 낱말로 빈칸을 채워요',          kind: 'card',   mode: 'challenge', pool: 'fill',   count: 10 },
+  { id: 'study',  emoji: '📖', name: '차근차근',     desc: '타이머 없이 정답·풀이를 확인하며',     kind: 'card',   mode: 'study',     pool: 'all',    count: 12 },
+  { id: 'rain',   emoji: '🌧️', name: '산성비 피하기', desc: '정답 빗방울만 콕! 산성비는 피해요',     kind: 'rain',   mode: 'challenge', pool: 'speed',  count: 8 },
+  { id: 'mole',   emoji: '🔨', name: '두더지 잡기',   desc: '정답을 든 두더지를 빠르게 콩!',         kind: 'mole',   mode: 'challenge', pool: 'battle', count: 8 },
+  { id: 'ox',     emoji: '🆗', name: 'OX 진실 게임',  desc: '맞으면 O, 틀리면 X 빠르게 판단!',       kind: 'ox',     mode: 'challenge', pool: 'ox',     count: 14 },
+  { id: 'memory', emoji: '🃏', name: '짝꿍 카드',     desc: '4×4 카드에서 용어와 뜻을 짝지어요',     kind: 'memory', mode: 'study',     pool: 'memory', count: 8 },
+  { id: 'fill',   emoji: '🔲', name: '빈칸 술술',     desc: '핵심 낱말로 빈칸 채우기 (천천히)',      kind: 'card',   mode: 'challenge', pool: 'fill',   count: 10 },
 ]
 
 export function miniGameById(id: string): MiniGame | undefined {
@@ -42,8 +44,13 @@ function shuffled<T>(arr: T[]): T[] {
 
 // 미니게임의 성향(pool)에 맞는 문제만 골라 count 만큼 돌려준다.
 // 해당 태그 문제가 부족하면(다른 단원 등) 단원 전체에서 뽑는다.
+// 아케이드(산성비·두더지)는 보기를 잡는 방식이라 객관식만 사용한다.
 export function pickForGame(g: MiniGame, problems: Problem[]): Problem[] {
   let pool = g.pool === 'all' ? problems : problems.filter((p) => p.tags?.includes(g.pool))
   if (pool.length < 4) pool = problems
+  if (g.kind === 'rain' || g.kind === 'mole') {
+    const mc = pool.filter((p) => p.type === 'multiple_choice')
+    if (mc.length >= 4) pool = mc
+  }
   return shuffled(pool).slice(0, g.count)
 }

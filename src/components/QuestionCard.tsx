@@ -15,6 +15,8 @@ interface Props {
   onExit?: () => void
   /** 과목 테마 클래스 (시각 통일) */
   theme?: string
+  /** 도전 모드에서 정답을 맞혀도 자동으로 넘어가지 않게(해설을 읽도록). 기본 true */
+  autoAdvance?: boolean
 }
 
 /** 도전 모드 제한 시간: 난이도 + 문제 길이에 따라 가변 */
@@ -24,7 +26,7 @@ function challengeTime(problem: Problem): number {
   return base + long
 }
 
-export function QuestionCard({ problem, index, total, combo, mode, onSubmit, onExit, theme }: Props) {
+export function QuestionCard({ problem, index, total, combo, mode, onSubmit, onExit, theme, autoAdvance = true }: Props) {
   const timeLimit = mode === 'challenge' ? challengeTime(problem) : 0
   const blankCount = problem.type === 'fill_blank' ? problem.blanks.length : 1
   const [responses, setResponses] = useState<string[]>(() => Array(blankCount).fill(''))
@@ -84,9 +86,9 @@ export function QuestionCard({ problem, index, total, combo, mode, onSubmit, onE
     setSubmitted(true)
     const timeLeftRatio = timeLimit ? Math.max(0, timeLeft) / timeLimit : 0
     pendingRef.current = { correct: r.correct, responses: resp, timeLeftRatio }
-    // 도전 모드에서 정답이면 잠깐 보여주고 자동 진행. 그 외(오답·학습 모드)는
-    // "다음" 버튼을 눌러야 넘어간다 — 정답과 풀이를 충분히 읽도록.
-    if (mode === 'challenge' && r.correct) {
+    // 도전 모드에서 정답이면 잠깐 보여주고 자동 진행. 그 외(오답·학습 모드,
+    // autoAdvance=false)는 "다음" 버튼을 눌러야 넘어간다 — 풀이를 충분히 읽도록.
+    if (autoAdvance && mode === 'challenge' && r.correct) {
       window.setTimeout(goNext, 900)
     }
   }

@@ -23,7 +23,7 @@ function shortPrompt(p: Problem): string {
 }
 
 function buildCards(problems: Problem[]): Card[] {
-  const picked = problems.slice(0, 6) // 최대 6쌍(12장)
+  const picked = problems.slice(0, 8) // 8쌍(16장) — 4×4
   const cards: Card[] = []
   picked.forEach((p) => {
     cards.push({ key: p.id + '-q', pid: p.id, side: 'q', text: shortPrompt(p) })
