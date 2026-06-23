@@ -1,4 +1,5 @@
 import type { Unit } from './types'
+import { lawProblems } from './law'
 
 // 사회 단원 모음. 새 단원은 아래 배열에 객체를 추가하세요.
 const G = '5-1'
@@ -163,6 +164,8 @@ export const socialUnits: Unit[] = [
         answers: ['다른 사람의 창작물을 함부로 사용하지 않는다', '저작권을 지킨다', '출처를 밝히고 허락을 받는다', '베끼지 않는다'],
         explanation: '다른 사람의 창작물(저작물)을 함부로 베끼지 않고, 허락을 받거나 출처를 밝히고 정당한 비용을 내야 합니다. (서술형)',
       },
+      // ── 미니게임별 맞춤 문제 풀 (스피드·배틀·OX·짝꿍·빈칸) ──
+      ...lawProblems,
     ],
   },
   {

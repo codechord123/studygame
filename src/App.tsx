@@ -35,7 +35,7 @@ import {
   type Slot,
   type CostumeItem,
 } from './game/costume'
-import { MINIGAMES, miniGameById, type MiniGame } from './game/minigames'
+import { MINIGAMES, miniGameById, pickForGame, type MiniGame } from './game/minigames'
 import {
   TOWN_NAME,
   AVATARS,
@@ -250,7 +250,8 @@ export default function App() {
   }
   function startMiniGame(g: MiniGame) {
     if (!selectedUnit) return
-    startQuiz(selectedUnit.problems, g.mode, unitVillager ?? undefined, g.id)
+    const picked = pickForGame(g, selectedUnit.problems)
+    startQuiz(picked, g.mode, unitVillager ?? undefined, g.id)
   }
 
   function exitQuiz() {
