@@ -138,6 +138,7 @@ export function houseStageFromXp(xp: number): number {
 // ── 우리 반 (가상 공간의 반 친구들) ───────────────────────────────
 // 오프라인 기본값(봇). Firebase 연동 시 실제 반 친구 데이터로 대체된다.
 export interface Classmate {
+  id?: string // Firebase 사용자 uid (방명록용). 봇은 이름을 사용
   name: string
   avatar: string
   xp: number
@@ -154,6 +155,39 @@ export const CLASSMATES: Classmate[] = [
   { name: '준서', avatar: '🦊', xp: 150, houseStage: 1 },
   { name: '유나', avatar: '🐹', xp: 60, houseStage: 0 },
 ]
+
+// ── 시간대 (반 전체가 별을 모을수록 낮 → 밤, 밤엔 등불·축제) ──────
+export type TimeOfDay = 'morning' | 'day' | 'dusk' | 'night'
+export function timeOfDay(stars: number): TimeOfDay {
+  if (stars >= 240) return 'night'
+  if (stars >= 140) return 'dusk'
+  if (stars >= 50) return 'day'
+  return 'morning'
+}
+export function timeLabel(t: TimeOfDay): string {
+  return t === 'night' ? '🌙 별빛 밤' : t === 'dusk' ? '🌆 노을' : t === 'day' ? '☀️ 한낮' : '🌅 아침'
+}
+
+// ── 계절 (현재 달 기준 장식) ──────────────────────────────────────
+export interface Season {
+  key: string
+  name: string
+  decor: string[] // 맵에 흩뿌릴 장식 이모지
+}
+export function seasonOf(month: number): Season {
+  if (month >= 3 && month <= 5) return { key: 'spring', name: '봄', decor: ['🌸', '🌷', '🐝'] }
+  if (month >= 6 && month <= 8) return { key: 'summer', name: '여름', decor: ['🌻', '🍉', '🦋'] }
+  if (month >= 9 && month <= 11) return { key: 'autumn', name: '가을', decor: ['🍁', '🍂', '🌰'] }
+  return { key: 'winter', name: '겨울', decor: ['❄️', '⛄', '🎄'] }
+}
+
+// ── NPC 잡담 (말풍선) ─────────────────────────────────────────────
+export const NPC_CHATTER: Record<string, string[]> = {
+  math: ['분수는 통분이 핵심이야!', '오늘도 한 문제 풀어볼까?', '숫자는 친구야 🧮'],
+  korean: ['예쁜 낱말 하나 배웠어 🦉', '책 읽는 거 좋아해?', '받아쓰기 도와줄게!'],
+  social: ['우리 마을 지도 그렸어 🗺️', '세상은 넓고 신기해!', '어디 살아?'],
+  science: ['실험은 두근거려 🔬', '왜 그럴까 궁금하지?', '별을 관찰했어 ✨'],
+}
 
 // ── 서사: 첫 도착 인트로 ──────────────────────────────────────────
 export const INTRO_STORY: string[] = [

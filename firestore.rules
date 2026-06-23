@@ -9,7 +9,7 @@ service cloud.firestore {
       }
     }
 
-    // 랭킹: 누구나 읽기, 쓰기는 본인 문서만 + 형식 검증
+    // 랭킹/우리반: 누구나 읽기, 쓰기는 본인 문서만 + 형식 검증
     match /leaderboard/{uid} {
       allow read: if true;
       allow write: if request.auth != null
@@ -17,6 +17,17 @@ service cloud.firestore {
         && request.resource.data.score is number
         && request.resource.data.name is string
         && request.resource.data.name.size() <= 12;
+    }
+
+    // 방명록: 누구나 읽기, 로그인하면 남기기 가능(생성만, 수정/삭제 불가) + 형식 검증
+    match /guestbooks/{ownerId}/entries/{entryId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.from is string
+        && request.resource.data.from.size() <= 12
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 80;
+      allow update, delete: if false;
     }
   }
 }

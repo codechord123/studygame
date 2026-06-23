@@ -15,6 +15,7 @@ import {
   query,
   orderBy,
   limit,
+  addDoc,
   serverTimestamp,
   type Firestore,
 } from 'firebase/firestore'
@@ -22,6 +23,7 @@ import { firebaseConfig } from './config'
 import { emptyProfile, normalizeProfile, type PlayerProfile } from '../../game/gamification'
 import type { RankEntry } from '../../game/progression'
 import { houseStageFromXp, type Classmate } from '../../game/world'
+import type { GuestEntry } from '../../game/guestbook'
 import type { Store, WrongNote } from '../storage'
 
 // Store 인터페이스의 Firestore 구현. localStore 와 1:1 로 호환되므로
@@ -110,6 +112,7 @@ export const firebaseStore: Store = {
       const v = d.data() as { name: string; xp?: number; avatar?: string; houseStage?: number }
       const xp = v.xp ?? 0
       return {
+        id: d.id,
         name: v.name,
         avatar: v.avatar ?? '🐱',
         xp,
@@ -117,5 +120,19 @@ export const firebaseStore: Store = {
         me: d.id === me,
       } as Classmate
     })
+  },
+
+  async loadGuestbook(ownerId) {
+    const q = query(
+      collection(db, 'guestbooks', ownerId, 'entries'),
+      orderBy('at', 'desc'),
+      limit(30),
+    )
+    const snap = await getDocs(q)
+    return snap.docs.map((d) => d.data() as GuestEntry)
+  },
+
+  async postGuestbook(ownerId, entry) {
+    await addDoc(collection(db, 'guestbooks', ownerId, 'entries'), entry)
   },
 }

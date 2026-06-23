@@ -1025,6 +1025,222 @@ body {
   transform: scale(0.94);
 }
 
+/* map header meta */
+.map-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.time-chip {
+  font-size: 11px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: var(--ink);
+}
+.mute-btn {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+/* time-of-day tint */
+.time-tint {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  z-index: 1;
+  transition: background 0.8s ease;
+}
+.tint-morning {
+  background: linear-gradient(rgba(255, 224, 150, 0.18), rgba(255, 184, 130, 0.12));
+}
+.tint-day {
+  background: transparent;
+}
+.tint-dusk {
+  background: linear-gradient(rgba(255, 130, 70, 0.22), rgba(110, 70, 150, 0.22));
+}
+.tint-night {
+  background: linear-gradient(rgba(15, 18, 55, 0.55), rgba(8, 10, 40, 0.6));
+}
+.viewport.time-night {
+  background: #20407a;
+}
+.viewport.time-dusk {
+  background: #b97a52;
+}
+
+/* lanterns / fireflies / decor */
+.lantern,
+.firefly,
+.decor {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 3;
+}
+.lantern {
+  font-size: 26px;
+  filter: drop-shadow(0 0 8px rgba(255, 170, 80, 0.9));
+  animation: lantern-glow 2.4s ease-in-out infinite;
+}
+@keyframes lantern-glow {
+  50% {
+    filter: drop-shadow(0 0 14px rgba(255, 200, 120, 1));
+  }
+}
+.firefly {
+  font-size: 14px;
+  animation: firefly-float 3.5s ease-in-out infinite;
+}
+@keyframes firefly-float {
+  0%,
+  100% {
+    transform: translate(0, 0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translate(10px, -14px);
+    opacity: 1;
+  }
+}
+.decor {
+  font-size: 22px;
+  opacity: 0.92;
+}
+
+/* festival banner */
+.festival-banner {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, #ff8a3c, #ff5e62);
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  z-index: 8;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  animation: slidein 0.3s ease;
+}
+
+/* npc glide + bubble */
+.sprite-villager.npc {
+  transition: left 0.5s ease, top 0.5s ease;
+}
+.bubble {
+  position: absolute;
+  bottom: 38px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  color: #20243f;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: 10px;
+  z-index: 9;
+  animation: slidein 0.2s ease;
+}
+.bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #fff;
+  border-bottom: 0;
+}
+
+/* player walk */
+.player.moving {
+  animation: walk-bob 0.34s ease-in-out infinite;
+}
+@keyframes walk-bob {
+  50% {
+    transform: translateY(-3px);
+  }
+}
+.player.face-left .sprite-emoji {
+  transform: scaleX(-1);
+}
+
+/* friend house interior */
+.interior {
+  position: relative;
+  background: linear-gradient(180deg, #3a2e57, #241d3f);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  height: 110px;
+  display: flex;
+  align-items: flex-end;
+  padding: 10px 12px;
+  margin: 4px 0;
+  overflow: hidden;
+}
+.interior-furni {
+  display: flex;
+  gap: 8px;
+  font-size: 30px;
+  flex-wrap: wrap;
+}
+.interior-host {
+  position: absolute;
+  right: 16px;
+  bottom: 8px;
+  font-size: 40px;
+}
+.guestbook {
+  text-align: left;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+}
+.gb-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.gb-input {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.gb-input .hint-input {
+  flex: 1;
+}
+.gb-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+.gb-entry {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+.gb-entry b {
+  color: var(--accent);
+}
+
 /* 친구 집 방문 */
 .visit-house {
   font-size: 60px;

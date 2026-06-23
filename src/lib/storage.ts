@@ -2,6 +2,7 @@ import type { Problem } from '../types/problem'
 import { emptyProfile, type PlayerProfile } from '../game/gamification'
 import type { RankEntry } from '../game/progression'
 import type { Classmate } from '../game/world'
+import type { GuestEntry } from '../game/guestbook'
 import { firebaseEnabled } from './firebase/config'
 
 // 영속성 추상화 계층.
@@ -29,6 +30,9 @@ export interface Store {
   loadLeaderboard?(): Promise<RankEntry[]>
   /** (선택) 우리 반 친구들 (각자 집·경험치) — 없으면 화면은 로컬 봇 사용 */
   loadClassmates?(): Promise<Classmate[]>
+  /** (선택) 친구 집 방명록 — 없으면 화면은 localStorage 사용 */
+  loadGuestbook?(ownerId: string): Promise<GuestEntry[]>
+  postGuestbook?(ownerId: string, entry: GuestEntry): Promise<void>
 }
 
 const PROFILE_KEY = 'sg.profile.v1'
@@ -114,5 +118,11 @@ export const store: Store = {
     : undefined,
   loadClassmates: firebaseEnabled
     ? async () => (await backend()).loadClassmates?.() ?? []
+    : undefined,
+  loadGuestbook: firebaseEnabled
+    ? async (ownerId) => (await backend()).loadGuestbook?.(ownerId) ?? []
+    : undefined,
+  postGuestbook: firebaseEnabled
+    ? async (ownerId, entry) => (await backend()).postGuestbook?.(ownerId, entry)
     : undefined,
 }

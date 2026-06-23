@@ -304,6 +304,10 @@ export default function App() {
           characterName={profile.characterName}
           houseStage={profile.houseStage}
           mates={classmates.filter((c) => !c.me)}
+          stars={
+            profile.correctCount +
+            Math.round(classmates.reduce((s, c) => s + (c.me ? 0 : c.xp), 0) / 40)
+          }
           onStudy={talkAndStudy}
           onMake={makeForVillager}
           onOpen={(s: FacilityScreen) => setScreen(s)}
