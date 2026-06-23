@@ -1,0 +1,12 @@
+{
+  "name": "studygame-functions",
+  "description": "AI 문제 변환 Cloud Function",
+  "type": "module",
+  "engines": { "node": "20" },
+  "main": "index.js",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.69.0",
+    "firebase-functions": "^6.0.0"
+  },
+  "private": true
+}

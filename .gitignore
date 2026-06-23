@@ -10,3 +10,6 @@ dist-ssr
 !.vscode/extensions.json
 *.log
 tsconfig.tsbuildinfo
+functions/node_modules
+.firebase
+firebase-debug.log

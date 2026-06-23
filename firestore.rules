@@ -1,0 +1,22 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 본인 프로필과 오답노트만 읽기/쓰기 가능
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+      match /wrongNotes/{noteId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    // 랭킹: 누구나 읽기, 쓰기는 본인 문서만 + 형식 검증
+    match /leaderboard/{uid} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.score is number
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 12;
+    }
+  }
+}

@@ -23,10 +23,18 @@ import {
   missionClaimable,
   leaderboard,
   type Cosmetic,
+  type RankEntry,
 } from './game/progression'
 import type { Problem } from './types/problem'
 
 type Screen = 'home' | 'quiz' | 'result' | 'wrong' | 'ai' | 'shop' | 'missions' | 'ranking'
+
+function getPlayerName(): string {
+  return localStorage.getItem('sg.name') || '플레이어'
+}
+function setPlayerName(name: string) {
+  localStorage.setItem('sg.name', name)
+}
 
 interface SessionState {
   problems: Problem[]
@@ -165,6 +173,10 @@ export default function App() {
     setProfile(updated)
     setEarnedBadges(fresh)
     await store.saveProfile(updated)
+    // 공용 랭킹 백엔드(Firebase)가 있으면 최고 점수 제출
+    if (updated.bestScore > profile.bestScore) {
+      store.submitScore?.(getPlayerName(), updated.bestScore).catch(() => {})
+    }
     setWrongNotes(await store.loadWrongNotes())
     setSession(s)
     setScreen('result')
@@ -545,11 +557,53 @@ function Missions(props: {
 
 // ── 랭킹 ──────────────────────────────────────────────────────────
 function Ranking(props: { profile: PlayerProfile; onBack: () => void }) {
-  const { rows, myRank } = leaderboard(props.profile)
+  const live = Boolean(store.loadLeaderboard)
+  const [rows, setRows] = useState<RankEntry[]>(() => leaderboard(props.profile).rows)
+  const [name, setName] = useState(getPlayerName())
+
+  useEffect(() => {
+    if (!store.loadLeaderboard) return
+    store
+      .loadLeaderboard()
+      .then((data) => {
+        if (data.length > 0) setRows(data)
+      })
+      .catch(() => {})
+  }, [])
+
+  const myRank = rows.findIndex((r) => r.me) + 1
+
+  async function saveName() {
+    setPlayerName(name)
+    if (store.submitScore && props.profile.bestScore > 0) {
+      await store.submitScore(name, props.profile.bestScore).catch(() => {})
+      const data = await store.loadLeaderboard?.()
+      if (data && data.length) setRows(data)
+    }
+  }
+
   return (
     <main className="screen ranking">
       <h1 className="title">🏆 랭킹</h1>
-      <p className="subtitle">최고 점수 기준 · 내 순위 {myRank}위</p>
+      <p className="subtitle">
+        최고 점수 기준{myRank > 0 ? ` · 내 순위 ${myRank}위` : ''}
+        {live ? ' · 실시간' : ' · 로컬'}
+      </p>
+
+      {live && (
+        <div className="hint-row">
+          <input
+            className="hint-input"
+            value={name}
+            maxLength={12}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="내 닉네임"
+          />
+          <button className="btn primary" onClick={saveName}>
+            저장
+          </button>
+        </div>
+      )}
 
       <ul className="rank-list">
         {rows.map((r, i) => (
@@ -561,7 +615,11 @@ function Ranking(props: { profile: PlayerProfile; onBack: () => void }) {
         ))}
       </ul>
 
-      <p className="rank-hint">친구와의 실시간 대전은 Firebase 연동 시 추가됩니다.</p>
+      {!live && (
+        <p className="rank-hint">
+          지금은 로컬 모의 랭킹입니다. Firebase 설정 시 실제 친구들과 순위를 겨뤄요.
+        </p>
+      )}
       <button className="btn ghost big" onClick={props.onBack}>
         홈으로
       </button>

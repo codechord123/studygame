@@ -75,13 +75,30 @@ src/
 ### ✅ 게임 확장 (완료)
 - 펫 상점, 일일 미션, 랭킹 보드. (`src/game/progression.ts`)
 
-### Firebase 연동 (다음)
-`storage.ts` 가 이미 `Store` 인터페이스로 추상화되어 있어, 같은 인터페이스의
-`firebaseStore` 를 만들어 `export const store` 만 교체하면 화면 코드 수정 없이 전환 가능.
-- **Auth**: 로그인(학생 계정)
-- **Firestore**: 프로필(XP/레벨/뱃지), 오답노트, 문제 은행, 퀴즈
-- **Storage**: 업로드한 워크시트 이미지
-- **Functions**: AI 변환 호출(키 보관), 랭킹 집계
+### ✅ Firebase 연동 (완료 — 설정만 하면 켜짐)
+`VITE_FIREBASE_*` 환경변수를 채우면 진행도·오답노트·랭킹이 자동으로 Firestore 동기화됩니다.
+비워두면 그대로 localStorage 로 동작합니다. **화면 코드 변경 없음** — `store` 가 자동 전환.
+
+- **Auth**: 익명 로그인(`signInAnonymously`)으로 계정 없이 동기화 시작
+- **Firestore**: `users/{uid}`(프로필), `users/{uid}/wrongNotes`(오답노트), `leaderboard/{uid}`(랭킹)
+- **랭킹**: 실제 점수가 Firestore 에 쌓이고 상위 20명을 실시간 표시 (닉네임 설정 가능)
+- **Functions**: `functions/index.js` 가 AI 변환 엔드포인트(키는 Secret Manager 보관)
+- **Storage**: 업로드 이미지용 보안 규칙(`storage.rules`) 포함
+- 보안 규칙(`firestore.rules`): 본인 데이터만 읽기/쓰기, 랭킹은 공개 읽기 + 형식 검증
+
+```bash
+# 1) Firebase 프로젝트 만들고 웹앱 등록 → 콘솔의 설정값을 .env 에 복사
+# 2) 변환 함수의 API 키 등록
+firebase functions:secrets:set ANTHROPIC_API_KEY
+# 3) 배포
+npm run build
+firebase deploy        # hosting + functions + firestore/storage rules
+```
+
+코드 구조:
+- `src/lib/firebase/config.ts` — 환경변수만 검사(SDK 미포함, 번들 경량 유지)
+- `src/lib/firebase/firebaseStore.ts` — Firestore 구현(활성화 시에만 **동적 로드**)
+- `src/lib/storage.ts` — `firebaseEnabled` 면 Firestore, 아니면 localStorage 로 위임
 
 ### 게임 요소 (진행 현황)
 - [x] 캐릭터/펫 꾸미기 상점(코인 사용)
