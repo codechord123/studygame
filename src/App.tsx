@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { QuestionCard, type PlayMode } from './components/QuestionCard'
 import { SpeedOxGame, type GameResult } from './components/SpeedOxGame'
 import { MemoryGame } from './components/MemoryGame'
@@ -27,6 +27,7 @@ import {
 } from './game/progression'
 import {
   SLOTS,
+  COSTUMES,
   itemsForSlot,
   isUnlocked,
   equippedEmoji,
@@ -196,6 +197,9 @@ export default function App() {
     const equip = { ...profile.equip }
     if (id) equip[slot] = id
     else delete equip[slot]
+    persist({ ...profile, equip })
+  }
+  function setEquipAll(equip: Record<string, string>) {
     persist({ ...profile, equip })
   }
   function buyFurniture(f: Furniture) {
@@ -571,6 +575,7 @@ export default function App() {
           level={level}
           onBuy={(c) => buyCostume(c, level)}
           onEquip={equipCostume}
+          onSetEquip={setEquipAll}
           onBack={() => setScreen('home')}
         />
       )}
@@ -1015,28 +1020,96 @@ function Home(props: { profile: PlayerProfile; level: number; onGo: (s: Screen) 
 }
 
 // ── 꾸미기 (캐릭터 코스튬) ────────────────────────────────────────
+const OUTFIT_KEY = 'sg.outfits'
+function loadOutfits(): Record<string, string>[] {
+  try {
+    return JSON.parse(localStorage.getItem(OUTFIT_KEY) || '[]')
+  } catch {
+    return []
+  }
+}
+function saveOutfits(o: Record<string, string>[]) {
+  localStorage.setItem(OUTFIT_KEY, JSON.stringify(o.slice(0, 3)))
+}
+
 function Costume(props: {
   profile: PlayerProfile
   level: number
   onBuy: (c: CostumeItem) => void
   onEquip: (slot: Slot, id: string | null) => void
+  onSetEquip: (equip: Record<string, string>) => void
   onBack: () => void
 }) {
   const { profile, level } = props
+  const [outfits, setOutfits] = useState<Record<string, string>[]>(() => loadOutfits())
+  const ownedCount = profile.cosmetics.length
+
+  // 보유 아이템을 슬롯별로 묶기 (랜덤 코디용)
+  const ownedBySlot = useMemo(() => {
+    const m: Record<string, string[]> = {}
+    for (const id of profile.cosmetics) {
+      const c = COSTUMES.find((x) => x.id === id)
+      if (c) (m[c.slot] = m[c.slot] ?? []).push(id)
+    }
+    return m
+  }, [profile.cosmetics])
+
+  function randomOutfit() {
+    const equip: Record<string, string> = {}
+    for (const { slot } of SLOTS) {
+      const pool = ownedBySlot[slot] ?? []
+      if (pool.length && Math.random() < 0.75) equip[slot] = pool[Math.floor(Math.random() * pool.length)]
+    }
+    props.onSetEquip(equip)
+  }
+  function storeOutfit() {
+    const next = [{ ...profile.equip }, ...outfits].slice(0, 3)
+    setOutfits(next)
+    saveOutfits(next)
+  }
+
   return (
     <main className="screen costume">
       <h1 className="title">👕 꾸미기</h1>
-      <p className="subtitle">🔔 {profile.coins} 벨 · 레벨이 오르면 더 멋진 코스튬이 열려요</p>
+      <p className="subtitle">🔔 {profile.coins} 벨 · 보유 {ownedCount}개 · Lv.{level}</p>
 
-      <div className="char-preview">
-        <span className="cp-cape">{equippedEmoji(profile.equip, 'cape')}</span>
-        <span className="cp-base">
-          <span className="cp-hat">{equippedEmoji(profile.equip, 'hat')}</span>
-          {profile.avatar}
-          <span className="cp-face">{equippedEmoji(profile.equip, 'face')}</span>
-        </span>
-        <span className="cp-hand">{equippedEmoji(profile.equip, 'hand')}</span>
+      <div className="char-preview big">
+        <div className="cp-stage">
+          <span className="cp-cape">{equippedEmoji(profile.equip, 'cape')}</span>
+          <span className="cp-base">
+            <span className="cp-hat">{equippedEmoji(profile.equip, 'hat')}</span>
+            {profile.avatar}
+            <span className="cp-face">{equippedEmoji(profile.equip, 'face')}</span>
+          </span>
+          <span className="cp-hand">{equippedEmoji(profile.equip, 'hand')}</span>
+        </div>
+        <div className="cp-shadow" />
       </div>
+
+      <div className="costume-tools">
+        <button className="tool-btn" onClick={randomOutfit} disabled={ownedCount === 0}>
+          🎲 랜덤 코디
+        </button>
+        <button className="tool-btn" onClick={() => props.onSetEquip({})}>
+          🧹 전체 벗기
+        </button>
+        <button className="tool-btn" onClick={storeOutfit}>
+          💾 코디 저장
+        </button>
+      </div>
+
+      {outfits.length > 0 && (
+        <div className="outfit-presets">
+          <span className="preset-label">저장한 코디</span>
+          <div className="preset-row">
+            {outfits.map((o, i) => (
+              <button key={i} className="preset-chip" onClick={() => props.onSetEquip(o)}>
+                {SLOTS.map(({ slot }) => equippedEmoji(o, slot) || '').join('') || '기본'}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {SLOTS.map(({ slot, label }) => (
         <div key={slot} className="slot-block">
