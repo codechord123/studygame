@@ -2120,6 +2120,67 @@ body {
   }
 }
 
+/* 데일리 — 스트릭 칩 & 오늘의 목표 */
+.streak-chip {
+  margin-left: auto;
+  align-self: flex-start;
+  background: linear-gradient(90deg, #ff8a3d, #ff4d6d);
+  color: #fff;
+  font-weight: 900;
+  font-size: 13px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(255, 77, 109, 0.4);
+}
+.daily-card {
+  width: 100%;
+  text-align: left;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+}
+.daily-card:active {
+  transform: scale(0.99);
+}
+.daily-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.daily-title {
+  font-weight: 800;
+  font-size: 15px;
+}
+.daily-count {
+  font-weight: 900;
+  color: var(--accent);
+}
+.daily-bar {
+  height: 12px;
+  border-radius: 999px;
+  background: #0e1126;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+.daily-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #4dd2ff, #6b8bff);
+  transition: width 0.4s ease;
+}
+.daily-fill.done {
+  background: linear-gradient(90deg, #6bff9e, #2ecc71);
+}
+.daily-sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+
 /* 내 문제 관리 */
 .screen.manage {
   gap: 12px;

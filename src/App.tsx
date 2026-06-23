@@ -23,6 +23,11 @@ import {
   comboMultiplier,
   computeScore,
   newlyEarnedBadges,
+  bumpStreak,
+  todayStr,
+  DAILY_GOAL,
+  DAILY_GOAL_COINS,
+  DAILY_GOAL_XP,
   type Badge,
 } from './game/gamification'
 import {
@@ -351,6 +356,18 @@ export default function App() {
         solved: profile.daily.solved + s.problems.length,
         bestCombo: Math.max(profile.daily.bestCombo, s.bestCombo),
       },
+    }
+    // 연속 출석(스트릭) — 오늘 처음 풀었으면 갱신
+    const today = todayStr()
+    const st = bumpStreak(profile, today)
+    updated.streak = st.streak
+    updated.streakBest = st.streakBest
+    updated.lastActiveDate = st.lastActiveDate
+    // 오늘의 목표 달성 보너스 (하루 1회)
+    if (!updated.daily.goalClaimed && updated.daily.solved >= DAILY_GOAL) {
+      updated.daily = { ...updated.daily, goalClaimed: true }
+      updated.coins += DAILY_GOAL_COINS
+      updated.xp += DAILY_GOAL_XP
     }
     // 단원 완성 보상: 새로 '완성'된 단원마다 보너스 벨
     const claimed = new Set(profile.dexRewards)
@@ -867,7 +884,7 @@ function Onboarding(props: { onDone: (name: string, avatar: string) => void }) {
     <div className="app onboarding">
       {!storyDone ? (
         <main className="screen story">
-          <div className="story-emoji">{['🚂', '🌌', '🏡', '💬', '✨'][step] ?? '✨'}</div>
+          <div className="story-emoji">{['🚂', '🌌', '🏡', '💬', '🎯', '✨'][step] ?? '✨'}</div>
           <p className="story-text">{INTRO_STORY[step]}</p>
           <button className="btn primary big" onClick={() => setStep((s) => s + 1)}>
             {step + 1 >= INTRO_STORY.length ? '내 캐릭터 만들기 ▶' : '다음 ▶'}
@@ -1058,6 +1075,9 @@ function Plaza(props: {
 
 // ── 홈 (두 파트: 공부하기 / 꾸미기) ───────────────────────────────
 function Home(props: { profile: PlayerProfile; level: number; onGo: (s: Screen) => void }) {
+  const { profile } = props
+  const goalPct = Math.min(100, Math.round((profile.daily.solved / DAILY_GOAL) * 100))
+  const goalDone = profile.daily.solved >= DAILY_GOAL
   return (
     <main className="screen home2">
       <div className="home-hello">
@@ -1066,7 +1086,27 @@ function Home(props: { profile: PlayerProfile; level: number; onGo: (s: Screen) 
           <h1 className="home-name">{props.profile.characterName}</h1>
           <p className="home-title">{titleForLevel(props.level)} · Lv.{props.level}</p>
         </div>
+        {profile.streak > 0 && (
+          <span className="streak-chip" title={`최고 ${profile.streakBest}일 연속`}>
+            🔥 {profile.streak}일
+          </span>
+        )}
       </div>
+
+      <button className="daily-card" onClick={() => props.onGo('subjects')}>
+        <div className="daily-top">
+          <span className="daily-title">🎯 오늘의 목표</span>
+          <span className="daily-count">
+            {Math.min(profile.daily.solved, DAILY_GOAL)} / {DAILY_GOAL}
+          </span>
+        </div>
+        <div className="daily-bar">
+          <div className={`daily-fill ${goalDone ? 'done' : ''}`} style={{ width: `${goalPct}%` }} />
+        </div>
+        <span className="daily-sub">
+          {goalDone ? '✅ 오늘 목표 달성! 잘했어요' : `${DAILY_GOAL - profile.daily.solved}문제 더 풀면 보너스 🔔${DAILY_GOAL_COINS}`}
+        </span>
+      </button>
 
       <div className="pillars">
         <button className="pillar pillar-study" onClick={() => props.onGo('subjects')}>

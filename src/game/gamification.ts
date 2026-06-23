@@ -5,7 +5,13 @@ export interface DailyState {
   solved: number // 오늘 푼 문제 수
   bestCombo: number // 오늘 최고 콤보
   claimed: string[] // 오늘 보상 받은 미션 id
+  goalClaimed?: boolean // 오늘의 목표 보상 수령 여부
 }
+
+// 오늘의 목표 — 매일 이만큼 풀면 보너스
+export const DAILY_GOAL = 10
+export const DAILY_GOAL_COINS = 30
+export const DAILY_GOAL_XP = 25
 
 export interface PlayerProfile {
   xp: number // 누적 경험치 (= 누적 포인트)
@@ -28,6 +34,30 @@ export interface PlayerProfile {
   houseStage: number // 집 짓기 단계 (0~5)
   mastery: Record<string, { seen: number; streak: number; wrong: boolean; subject?: string; unit?: string }> // 문항별 숙련도
   dexRewards: string[] // 보상 받은 '완성 단원' 키 목록
+  // ── 연속 출석(스트릭) ──
+  streak: number // 현재 연속 학습 일수
+  streakBest: number // 최고 연속 일수
+  lastActiveDate: string // 마지막으로 푼 날짜 (YYYY-MM-DD)
+}
+
+/** 어제 날짜 문자열 */
+export function yesterdayStr(today: string): string {
+  const d = new Date(today + 'T12:00:00')
+  d.setDate(d.getDate() - 1)
+  return todayStr(d)
+}
+
+/** 오늘 학습 시 연속 출석을 갱신한 값 (하루 1회만 증가) */
+export function bumpStreak(
+  p: Pick<PlayerProfile, 'streak' | 'streakBest' | 'lastActiveDate'>,
+  today: string,
+): { streak: number; streakBest: number; lastActiveDate: string; isNewDay: boolean } {
+  if (p.lastActiveDate === today) {
+    return { streak: p.streak, streakBest: p.streakBest, lastActiveDate: today, isNewDay: false }
+  }
+  const continued = p.lastActiveDate === yesterdayStr(today)
+  const streak = continued ? p.streak + 1 : 1
+  return { streak, streakBest: Math.max(p.streakBest, streak), lastActiveDate: today, isNewDay: true }
 }
 
 export function todayStr(d = new Date()): string {
@@ -56,6 +86,9 @@ export const emptyProfile: PlayerProfile = {
   houseStage: 0,
   mastery: {},
   dexRewards: [],
+  streak: 0,
+  streakBest: 0,
+  lastActiveDate: '',
 }
 
 /** 저장된 프로필을 최신 스키마로 보정 + 날짜 바뀌면 일일 상태 초기화 */
