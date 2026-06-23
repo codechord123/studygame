@@ -3,35 +3,55 @@ import { VILLAGERS, type Villager } from '../game/world'
 import { unitNamesFor, type CustomStore } from '../data/customContent'
 import type { Problem, ProblemType } from '../types/problem'
 
+export interface EditTarget {
+  villagerId: string
+  unitName: string
+  problem: Problem
+}
+
 interface Props {
   store: CustomStore
   initialVillager?: Villager | null
+  editing?: EditTarget | null
   onSave: (villagerId: string, unitName: string, problem: Problem) => void
+  onUpdate?: (villagerId: string, unitName: string, problem: Problem) => void
   onBack: () => void
 }
 
 // 학생/교사가 직접 문제를 만드는 폼: 과목·단원 → 유형 → 문제·답지 → 사진(선택).
-export function ProblemCreate({ store, initialVillager, onSave, onBack }: Props) {
-  const [villagerId, setVillagerId] = useState(initialVillager?.id ?? VILLAGERS[0].id)
+// editing 이 주어지면 같은 폼이 '수정' 모드로 동작한다.
+export function ProblemCreate({ store, initialVillager, editing, onSave, onUpdate, onBack }: Props) {
+  const ep = editing?.problem
+  const [villagerId, setVillagerId] = useState(editing?.villagerId ?? initialVillager?.id ?? VILLAGERS[0].id)
   const villager = VILLAGERS.find((v) => v.id === villagerId)!
   const unitNames = useMemo(
     () => unitNamesFor(villagerId, villager.subject, store),
     [villagerId, villager.subject, store],
   )
-  const [unitMode, setUnitMode] = useState<'existing' | 'new'>(unitNames.length ? 'existing' : 'new')
-  const [unitExisting, setUnitExisting] = useState(unitNames[0] ?? '')
+  const [unitMode, setUnitMode] = useState<'existing' | 'new'>(
+    editing || unitNames.length ? 'existing' : 'new',
+  )
+  const [unitExisting, setUnitExisting] = useState(editing?.unitName ?? unitNames[0] ?? '')
   const [unitNew, setUnitNew] = useState('')
-  const [type, setType] = useState<ProblemType>('multiple_choice')
-  const [difficulty, setDifficulty] = useState<1 | 2 | 3>(1)
-  const [prompt, setPrompt] = useState('')
-  const [choices, setChoices] = useState<string[]>(['', '', '', ''])
-  const [answerIndex, setAnswerIndex] = useState(0)
-  const [answers, setAnswers] = useState('')
-  const [numeric, setNumeric] = useState(false)
-  const [oxAnswer, setOxAnswer] = useState(true)
-  const [blankAnswers, setBlankAnswers] = useState('')
-  const [explanation, setExplanation] = useState('')
-  const [image, setImage] = useState<string | null>(null)
+  const [type, setType] = useState<ProblemType>(ep?.type ?? 'multiple_choice')
+  const [difficulty, setDifficulty] = useState<1 | 2 | 3>(ep?.difficulty ?? 1)
+  const [prompt, setPrompt] = useState(ep?.prompt ?? '')
+  const [choices, setChoices] = useState<string[]>(
+    ep?.type === 'multiple_choice'
+      ? [...ep.choices, '', '', '', ''].slice(0, Math.max(4, ep.choices.length))
+      : ['', '', '', ''],
+  )
+  const [answerIndex, setAnswerIndex] = useState(ep?.type === 'multiple_choice' ? ep.answer : 0)
+  const [answers, setAnswers] = useState(ep?.type === 'short_answer' ? ep.answers.join(', ') : '')
+  const [numeric, setNumeric] = useState(
+    (ep?.type === 'short_answer' || ep?.type === 'fill_blank') && !!ep.numericAnswer,
+  )
+  const [oxAnswer, setOxAnswer] = useState(ep?.type === 'ox' ? ep.answer : true)
+  const [blankAnswers, setBlankAnswers] = useState(
+    ep?.type === 'fill_blank' ? (ep.blanks[0] ?? []).join(', ') : '',
+  )
+  const [explanation, setExplanation] = useState(ep?.explanation ?? '')
+  const [image, setImage] = useState<string | null>(ep?.image ?? null)
   const [saved, setSaved] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -59,9 +79,9 @@ export function ProblemCreate({ store, initialVillager, onSave, onBack }: Props)
     if (!unitName) return setError('단원을 정해 주세요.'), null
     if (!prompt.trim()) return setError('문제를 입력해 주세요.'), null
     const base = {
-      id: 'u-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+      id: ep?.id ?? 'u-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
       subject: villager.subject,
-      grade: '',
+      grade: ep?.grade ?? '',
       unit: unitName,
       difficulty,
       points: difficulty === 3 ? 20 : difficulty === 2 ? 15 : 10,
@@ -94,6 +114,12 @@ export function ProblemCreate({ store, initialVillager, onSave, onBack }: Props)
     setError(null)
     const problem = build()
     if (!problem) return
+    if (editing && onUpdate) {
+      onUpdate(villagerId, unitName, problem)
+      setSaved('수정했어요!')
+      window.setTimeout(onBack, 600)
+      return
+    }
     onSave(villagerId, unitName, problem)
     setSaved(`${villager.subject} · ${unitName} 에 저장됐어요!`)
     if (unitMode === 'new') {
@@ -106,15 +132,17 @@ export function ProblemCreate({ store, initialVillager, onSave, onBack }: Props)
 
   return (
     <main className="screen create">
-      <h1 className="title">✏️ 문제 만들기</h1>
-      <p className="subtitle">과목·단원을 고르고 문제와 답지를 적어요</p>
+      <h1 className="title">{editing ? '✏️ 문제 수정' : '✏️ 문제 만들기'}</h1>
+      <p className="subtitle">
+        {editing ? '내용을 고치고 저장하세요' : '과목·단원을 고르고 문제와 답지를 적어요'}
+      </p>
 
       {saved && <div className="feedback good">{saved}</div>}
       {error && <div className="feedback bad">{error}</div>}
 
       <label className="field">
         <span className="field-label">과목</span>
-        <select className="field-input" value={villagerId} onChange={(e) => setVillagerId(e.target.value)}>
+        <select className="field-input" value={villagerId} disabled={!!editing} onChange={(e) => setVillagerId(e.target.value)}>
           {VILLAGERS.map((v) => (
             <option key={v.id} value={v.id}>
               {v.emoji} {v.subject}
@@ -129,6 +157,7 @@ export function ProblemCreate({ store, initialVillager, onSave, onBack }: Props)
           {unitNames.length > 0 && (
             <select
               className="field-input"
+              disabled={!!editing}
               value={unitMode === 'existing' ? unitExisting : '__new__'}
               onChange={(e) => {
                 if (e.target.value === '__new__') setUnitMode('new')

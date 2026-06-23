@@ -7,7 +7,7 @@ import { MoleGame } from './components/MoleGame'
 import { BalloonGame } from './components/BalloonGame'
 import { TownMap, type FacilityScreen } from './components/TownMap'
 import { AiMaker } from './components/AiMaker'
-import { ProblemCreate } from './components/ProblemCreate'
+import { ProblemCreate, type EditTarget } from './components/ProblemCreate'
 import { AnimalCharacter } from './components/AnimalCharacter'
 import { PhaserGame } from './react/game/PhaserGame'
 import { bridge } from './game/bridge'
@@ -67,8 +67,12 @@ import { type Unit } from './data/curriculum'
 import {
   loadCustom,
   addCustomProblem,
+  updateCustomProblem,
+  deleteCustomProblem,
+  flattenCustom,
   mergedUnitsFor,
   type CustomStore,
+  type CustomItem,
 } from './data/customContent'
 import type { Problem } from './types/problem'
 
@@ -103,6 +107,7 @@ type Screen =
   | 'dex'
   | 'dashboard'
   | 'settings'
+  | 'manage'
 
 function hatOf(p: PlayerProfile): string | undefined {
   return equippedEmoji(p.equip, 'hat')
@@ -160,6 +165,7 @@ export default function App() {
   const [unitVillager, setUnitVillager] = useState<Villager | null>(null)
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null)
   const [customStore, setCustomStore] = useState<CustomStore>({})
+  const [editTarget, setEditTarget] = useState<EditTarget | null>(null)
   const bridgeRef = useRef<{
     ui: (d: { type: FacilityScreen }) => void
     villager: (d: { id: string }) => void
@@ -438,8 +444,19 @@ export default function App() {
   function saveProblem(villagerId: string, unitName: string, problem: Problem) {
     setCustomStore((s) => addCustomProblem(s, villagerId, unitName, problem))
   }
+  function updateProblem(villagerId: string, unitName: string, problem: Problem) {
+    setCustomStore((s) => updateCustomProblem(s, villagerId, unitName, problem))
+  }
+  function deleteProblem(item: CustomItem) {
+    setCustomStore((s) => deleteCustomProblem(s, item.villagerId, item.unitName, item.problem.id))
+  }
+  function startEdit(item: CustomItem) {
+    setEditTarget({ villagerId: item.villagerId, unitName: item.unitName, problem: item.problem })
+    setScreen('create')
+  }
   // 아이들이 직접 문제를 만드는 경로(과목 미리 지정)
   function openCreate(v?: Villager) {
+    setEditTarget(null)
     if (v) setUnitVillager(v)
     setScreen('create')
   }
@@ -618,8 +635,24 @@ export default function App() {
         <ProblemCreate
           store={customStore}
           initialVillager={unitVillager}
+          editing={editTarget}
           onSave={saveProblem}
-          onBack={() => setScreen(unitVillager ? 'units' : 'subjects')}
+          onUpdate={updateProblem}
+          onBack={() => {
+            const wasEditing = !!editTarget
+            setEditTarget(null)
+            setScreen(wasEditing ? 'manage' : unitVillager ? 'units' : 'subjects')
+          }}
+        />
+      )}
+
+      {screen === 'manage' && (
+        <Manage
+          items={flattenCustom(customStore)}
+          onEdit={startEdit}
+          onDelete={deleteProblem}
+          onNew={() => openCreate()}
+          onBack={() => setScreen('home')}
         />
       )}
 
@@ -1315,6 +1348,7 @@ function MainMenu(props: { onGo: (s: Screen) => void; onClose: () => void }) {
     { s: 'subjects', emoji: '📚', label: '공부하기' },
     { s: 'costume', emoji: '👕', label: '꾸미기' },
     { s: 'create', emoji: '✏️', label: '문제 만들기' },
+    { s: 'manage', emoji: '🗂️', label: '내 문제 관리' },
     { s: 'ai', emoji: '🤖', label: '사진 변환(AI)' },
     { s: 'dashboard', emoji: '📊', label: '학습 현황' },
     { s: 'dex', emoji: '📜', label: '학습 도감' },
@@ -1342,6 +1376,83 @@ function MainMenu(props: { onGo: (s: Screen) => void; onClose: () => void }) {
         </button>
       </div>
     </div>
+  )
+}
+
+// ── 내 문제 관리 (목록·수정·삭제) ─────────────────────────────────
+const PTYPE_LABEL: Record<string, string> = {
+  multiple_choice: '객관식',
+  short_answer: '주관식',
+  ox: 'OX',
+  fill_blank: '빈칸',
+}
+function Manage(props: {
+  items: CustomItem[]
+  onEdit: (item: CustomItem) => void
+  onDelete: (item: CustomItem) => void
+  onNew: () => void
+  onBack: () => void
+}) {
+  // 과목(villager) → 단원 으로 묶기
+  const groups = useMemo(() => {
+    const map = new Map<string, { villagerId: string; unitName: string; items: CustomItem[] }>()
+    for (const it of props.items) {
+      const key = it.villagerId + '||' + it.unitName
+      if (!map.has(key)) map.set(key, { villagerId: it.villagerId, unitName: it.unitName, items: [] })
+      map.get(key)!.items.push(it)
+    }
+    return [...map.values()]
+  }, [props.items])
+
+  function confirmDelete(it: CustomItem) {
+    if (window.confirm('이 문제를 삭제할까요? 되돌릴 수 없어요.')) props.onDelete(it)
+  }
+
+  return (
+    <main className="screen manage">
+      <h1 className="title">🗂️ 내 문제 관리</h1>
+      <p className="subtitle">내가 만든 문제 {props.items.length}개 · 수정하거나 지울 수 있어요</p>
+
+      <button className="btn primary" onClick={props.onNew}>
+        ➕ 새 문제 만들기
+      </button>
+
+      {groups.length === 0 ? (
+        <p className="empty">아직 만든 문제가 없어요. 문제를 만들면 여기 모여요!</p>
+      ) : (
+        groups.map((g) => {
+          const v = villagerById(g.villagerId)
+          return (
+            <section key={g.villagerId + g.unitName} className="manage-group">
+              <h3 className="manage-unit">
+                {v?.emoji} {v?.subject} · {g.unitName}{' '}
+                <span className="manage-count">{g.items.length}</span>
+              </h3>
+              {g.items.map((it) => (
+                <div key={it.problem.id} className="manage-item">
+                  <span className={`mtype t-${it.problem.type}`}>
+                    {PTYPE_LABEL[it.problem.type] ?? it.problem.type}
+                  </span>
+                  <span className="manage-prompt">{it.problem.prompt.replace(/\{\{\d+\}\}/g, '___')}</span>
+                  <div className="manage-actions">
+                    <button className="icon-btn" title="수정" onClick={() => props.onEdit(it)}>
+                      ✏️
+                    </button>
+                    <button className="icon-btn danger" title="삭제" onClick={() => confirmDelete(it)}>
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </section>
+          )
+        })
+      )}
+
+      <button className="btn ghost big" onClick={props.onBack}>
+        돌아가기
+      </button>
+    </main>
   )
 }
 

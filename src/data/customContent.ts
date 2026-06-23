@@ -39,6 +39,62 @@ export function addCustomProblem(
   return next
 }
 
+/** id로 문제 1개 삭제 후 갱신된 store 반환 (빈 단원/과목은 정리) */
+export function deleteCustomProblem(
+  store: CustomStore,
+  villagerId: string,
+  unitName: string,
+  problemId: string,
+): CustomStore {
+  const units = store[villagerId]
+  if (!units || !units[unitName]) return store
+  const list = units[unitName].filter((p) => p.id !== problemId)
+  const nextUnits: Record<string, Problem[]> = { ...units }
+  if (list.length) nextUnits[unitName] = list
+  else delete nextUnits[unitName]
+  const next: CustomStore = { ...store }
+  if (Object.keys(nextUnits).length) next[villagerId] = nextUnits
+  else delete next[villagerId]
+  save(next)
+  return next
+}
+
+/** 같은 id 문제를 교체(수정) 후 갱신된 store 반환 */
+export function updateCustomProblem(
+  store: CustomStore,
+  villagerId: string,
+  unitName: string,
+  problem: Problem,
+): CustomStore {
+  const units = store[villagerId] ?? {}
+  const list = units[unitName] ?? []
+  const idx = list.findIndex((p) => p.id === problem.id)
+  if (idx < 0) return addCustomProblem(store, villagerId, unitName, problem)
+  const nextList = list.map((p) => (p.id === problem.id ? problem : p))
+  const next: CustomStore = {
+    ...store,
+    [villagerId]: { ...units, [unitName]: nextList },
+  }
+  save(next)
+  return next
+}
+
+/** 내가 만든 문제만 평탄화 — 관리 화면용 */
+export interface CustomItem {
+  villagerId: string
+  unitName: string
+  problem: Problem
+}
+export function flattenCustom(store: CustomStore): CustomItem[] {
+  const out: CustomItem[] = []
+  for (const [villagerId, units] of Object.entries(store)) {
+    for (const [unitName, problems] of Object.entries(units)) {
+      for (const problem of problems) out.push({ villagerId, unitName, problem })
+    }
+  }
+  return out
+}
+
 /** 정적 단원 + 커스텀 단원을 단원이름 기준으로 합침 */
 export function mergedUnitsFor(villagerId: string, subject: string, store: CustomStore): Unit[] {
   const byName = new Map<string, Unit>()
