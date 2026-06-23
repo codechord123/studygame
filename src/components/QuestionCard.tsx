@@ -122,6 +122,8 @@ export function QuestionCard({ problem, index, total, combo, mode, onSubmit, onE
         </div>
       )}
 
+      {problem.image && <img className="q-image" src={problem.image} alt="문제 그림" />}
+
       {problem.type === 'fill_blank' && promptParts ? (
         <p className="prompt">
           {promptParts.map((part, i) => {

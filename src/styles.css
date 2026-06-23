@@ -1498,6 +1498,82 @@ body {
   text-align: right;
 }
 
+/* 문제 그림 */
+.q-image {
+  width: 100%;
+  max-height: 240px;
+  object-fit: contain;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #0e1126;
+}
+
+/* ── 문제 만들기 폼 ────────────────────────────────────────────── */
+.create {
+  gap: 12px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.field-input {
+  background: #0e1126;
+  border: 1.5px solid var(--line);
+  color: var(--ink);
+  border-radius: 12px;
+  padding: 11px 12px;
+  font-size: 15px;
+  font-family: inherit;
+  width: 100%;
+}
+.field-input.ta {
+  resize: vertical;
+}
+.unit-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.choice-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.choice-row .field-input {
+  flex: 1;
+}
+.choice-row input[type='radio'] {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+.hint-sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.ox-pick {
+  display: flex;
+  gap: 10px;
+}
+.ox-pick .btn {
+  flex: 1;
+}
+.upload-box.small {
+  min-height: 120px;
+}
+
 /* ── OX 빨리 누르기 ────────────────────────────────────────────── */
 .ox-game {
   margin-top: 18px;

@@ -17,6 +17,8 @@ export interface ProblemBase {
   tags?: string[]
   /** short_answer/fill_blank 채점 시 유리수(분수)로 비교할지 여부 */
   numericAnswer?: boolean
+  /** 문제에 첨부된 그림/사진 (data URL). 직접 만들기에서 캡처 첨부 */
+  image?: string
 }
 
 export interface MultipleChoiceProblem extends ProblemBase {

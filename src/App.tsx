@@ -4,6 +4,7 @@ import { SpeedOxGame, type GameResult } from './components/SpeedOxGame'
 import { MemoryGame } from './components/MemoryGame'
 import { TownMap, type FacilityScreen } from './components/TownMap'
 import { AiMaker } from './components/AiMaker'
+import { ProblemCreate } from './components/ProblemCreate'
 import { PhaserGame } from './react/game/PhaserGame'
 import { bridge } from './game/bridge'
 import { store, type WrongNote } from './lib/storage'
@@ -54,7 +55,13 @@ import {
 import { orderByMastery, updateEntry, type MasteryMap } from './game/mastery'
 import { subjectStats, unitCards, trophies, completedUnitKeys, UNIT_REWARD } from './game/collection'
 import { VILLAGER_PROBLEMS } from './data/villagerQuizzes'
-import { unitsFor, type Unit } from './data/curriculum'
+import { type Unit } from './data/curriculum'
+import {
+  loadCustom,
+  addCustomProblem,
+  mergedUnitsFor,
+  type CustomStore,
+} from './data/customContent'
 import type { Problem } from './types/problem'
 
 // 과목별 테마 클래스 (광장→대화창→단원→퀴즈 시각 통일)
@@ -74,6 +81,7 @@ type Screen =
   | 'units'
   | 'minigame'
   | 'costume'
+  | 'create'
   | 'walk'
   | 'quiz'
   | 'result'
@@ -142,6 +150,7 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [unitVillager, setUnitVillager] = useState<Villager | null>(null)
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null)
+  const [customStore, setCustomStore] = useState<CustomStore>({})
   const bridgeRef = useRef<{
     ui: (d: { type: FacilityScreen }) => void
     villager: (d: { id: string }) => void
@@ -154,6 +163,7 @@ export default function App() {
       setLoaded(true)
     })
     store.loadWrongNotes().then(setWrongNotes)
+    setCustomStore(loadCustom())
     if (store.loadClassmates) {
       store
         .loadClassmates()
@@ -409,6 +419,12 @@ export default function App() {
     setUnitVillager(v)
     setScreen('units')
   }
+  function unitsForVillager(v: Villager): Unit[] {
+    return mergedUnitsFor(v.id, v.subject, customStore)
+  }
+  function saveProblem(villagerId: string, unitName: string, problem: Problem) {
+    setCustomStore((s) => addCustomProblem(s, villagerId, unitName, problem))
+  }
   function makeForVillager(v: Villager) {
     setAiVillager(v)
     setScreen('ai')
@@ -575,10 +591,21 @@ export default function App() {
       {screen === 'units' && unitVillager && (
         <UnitSelect
           villager={unitVillager}
+          units={unitsForVillager(unitVillager)}
           profile={profile}
           onChoose={chooseUnit}
           onMake={() => makeForVillager(unitVillager)}
+          onCreate={() => setScreen('create')}
           onBack={() => setScreen('subjects')}
+        />
+      )}
+
+      {screen === 'create' && (
+        <ProblemCreate
+          store={customStore}
+          initialVillager={unitVillager}
+          onSave={saveProblem}
+          onBack={() => setScreen(unitVillager ? 'units' : 'subjects')}
         />
       )}
 
@@ -1113,13 +1140,14 @@ function BattleBar(props: { correct: number; total: number }) {
 // ── 단원 선택 ─────────────────────────────────────────────────────
 function UnitSelect(props: {
   villager: Villager
+  units: Unit[]
   profile: PlayerProfile
   onChoose: (u: Unit) => void
   onMake: () => void
+  onCreate: () => void
   onBack: () => void
 }) {
-  const { villager, profile } = props
-  const units = unitsFor(villager.id)
+  const { villager, units, profile } = props
   const theme = themeOf(villager.subject)
 
   function progress(u: Unit): { mastered: number; total: number } {
@@ -1168,8 +1196,11 @@ function UnitSelect(props: {
         </div>
       )}
 
+      <button className="btn primary big" onClick={props.onCreate}>
+        ✏️ 직접 문제 만들기
+      </button>
       <button className="btn accent big" onClick={props.onMake}>
-        🤖 사진으로 단원 추가
+        🤖 사진으로 문제 추가 (AI)
       </button>
       <button className="btn ghost big" onClick={props.onBack}>
         광장으로
@@ -1184,6 +1215,7 @@ function MainMenu(props: { onGo: (s: Screen) => void; onClose: () => void }) {
     { s: 'home', emoji: '🏠', label: '홈' },
     { s: 'subjects', emoji: '📚', label: '공부하기' },
     { s: 'costume', emoji: '👕', label: '꾸미기' },
+    { s: 'create', emoji: '✏️', label: '문제 만들기' },
     { s: 'dashboard', emoji: '📊', label: '학습 현황' },
     { s: 'dex', emoji: '📜', label: '학습 도감' },
     { s: 'wrong', emoji: '📒', label: '오답노트' },
