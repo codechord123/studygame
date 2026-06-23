@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { QuestionCard, type PlayMode } from './components/QuestionCard'
+import { TownMap, type FacilityScreen } from './components/TownMap'
 import { AiMaker } from './components/AiMaker'
 import { store, type WrongNote } from './lib/storage'
 import {
@@ -26,8 +27,6 @@ import {
   TOWN_NAME,
   AVATARS,
   titleForLevel,
-  VILLAGERS,
-  friendHearts,
   FURNITURE,
   furnitureById,
   INTRO_STORY,
@@ -43,17 +42,7 @@ import { orderByMastery, updateEntry, type MasteryMap } from './game/mastery'
 import { VILLAGER_PROBLEMS } from './data/villagerQuizzes'
 import type { Problem } from './types/problem'
 
-type Screen =
-  | 'town'
-  | 'quiz'
-  | 'result'
-  | 'wrong'
-  | 'ai'
-  | 'shop'
-  | 'missions'
-  | 'ranking'
-  | 'room'
-  | 'class'
+type Screen = 'town' | 'quiz' | 'result' | 'wrong' | 'ai' | 'shop' | 'missions' | 'ranking' | 'room'
 
 interface SessionState {
   problems: Problem[]
@@ -91,6 +80,7 @@ export default function App() {
   const [wrongNotes, setWrongNotes] = useState<WrongNote[]>([])
   const [earnedBadges, setEarnedBadges] = useState<Badge[]>([])
   const [aiVillager, setAiVillager] = useState<Villager | null>(null)
+  const [classmates, setClassmates] = useState<Classmate[]>(CLASSMATES)
 
   useEffect(() => {
     store.loadProfile().then((p) => {
@@ -98,6 +88,14 @@ export default function App() {
       setLoaded(true)
     })
     store.loadWrongNotes().then(setWrongNotes)
+    if (store.loadClassmates) {
+      store
+        .loadClassmates()
+        .then((d) => {
+          if (d.length > 0) setClassmates(d)
+        })
+        .catch(() => {})
+    }
   }, [])
 
   async function persist(next: PlayerProfile) {
@@ -300,13 +298,15 @@ export default function App() {
       />
 
       {screen === 'town' && (
-        <Town
-          profile={profile}
-          claimable={DAILY_MISSIONS.some((m) => missionClaimable(m, profile.daily))}
-          unresolved={wrongNotes.filter((n) => !n.resolved).length}
-          onStudy={(v, mode) => talkAndStudy(v, mode)}
+        <TownMap
+          avatar={profile.avatar}
+          hat={cosmeticById(profile.equipped)?.emoji}
+          characterName={profile.characterName}
+          houseStage={profile.houseStage}
+          mates={classmates.filter((c) => !c.me)}
+          onStudy={talkAndStudy}
           onMake={makeForVillager}
-          onNav={(s) => setScreen(s)}
+          onOpen={(s: FacilityScreen) => setScreen(s)}
         />
       )}
 
@@ -368,10 +368,6 @@ export default function App() {
           onShop={() => setScreen('shop')}
           onBack={() => setScreen('town')}
         />
-      )}
-
-      {screen === 'class' && (
-        <Classroom profile={profile} level={level} onBack={() => setScreen('town')} />
       )}
 
       {screen === 'missions' && (
@@ -488,133 +484,6 @@ function Hud(props: {
   )
 }
 
-// ── 마을 허브 ─────────────────────────────────────────────────────
-function Town(props: {
-  profile: PlayerProfile
-  claimable: boolean
-  unresolved: number
-  onStudy: (v: Villager, mode: PlayMode) => void
-  onMake: (v: Villager) => void
-  onNav: (s: Screen) => void
-}) {
-  const [active, setActive] = useState<Villager | null>(null)
-
-  return (
-    <main className="screen town">
-      <div className="town-sky">
-        <h1 className="town-title">🌳 {TOWN_NAME}</h1>
-        <p className="town-sub">
-          {props.profile.characterName}의 마을 · 별 {props.profile.correctCount}개 반짝
-        </p>
-      </div>
-
-      <h3 className="section-label">마을 친구들 — 말을 걸어 같이 공부해요</h3>
-      <div className="villager-grid">
-        {VILLAGERS.map((v) => {
-          const hearts = friendHearts(props.profile.villagerFriends[v.id] ?? 0)
-          return (
-            <button key={v.id} className="villager" onClick={() => setActive(v)}>
-              <span className="villager-emoji">{v.emoji}</span>
-              <span className="villager-name">{v.name}</span>
-              <span className="villager-subject">{v.subject}</span>
-              <span className="hearts">{'❤️'.repeat(hearts) || '🤍'}</span>
-            </button>
-          )
-        })}
-      </div>
-
-      <h3 className="section-label">마을 시설</h3>
-      <div className="building-grid">
-        <BuildingBtn emoji="🏠" label="내 집" onClick={() => props.onNav('room')} />
-        <BuildingBtn emoji="🗺️" label="우리 반" onClick={() => props.onNav('class')} />
-        <BuildingBtn emoji="🛍️" label="상점" onClick={() => props.onNav('shop')} />
-        <BuildingBtn
-          emoji="🎯"
-          label="게시판"
-          badge={props.claimable}
-          onClick={() => props.onNav('missions')}
-        />
-        <BuildingBtn emoji="🏆" label="명예의 별" onClick={() => props.onNav('ranking')} />
-        <BuildingBtn
-          emoji="📒"
-          label="오답노트"
-          count={props.unresolved}
-          onClick={() => props.onNav('wrong')}
-        />
-        <BuildingBtn emoji="🤖" label="문제공방" onClick={() => props.onNav('ai')} />
-      </div>
-
-      {active && (
-        <div className="modal-backdrop" onClick={() => setActive(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-emoji">{active.emoji}</div>
-            <div className="modal-name">
-              {active.name} <span className="modal-subject">· {active.subject}</span>
-            </div>
-            <p className="modal-line">
-              “
-              {friendHearts(props.profile.villagerFriends[active.id] ?? 0) >= 3
-                ? active.bond
-                : active.greeting}
-              ”
-            </p>
-            <button
-              className="btn primary big"
-              onClick={() => {
-                const v = active
-                setActive(null)
-                props.onStudy(v, 'study')
-              }}
-            >
-              📖 같이 공부하기
-            </button>
-            <button
-              className="btn challenge big"
-              onClick={() => {
-                const v = active
-                setActive(null)
-                props.onStudy(v, 'challenge')
-              }}
-            >
-              ⚡ 도전 모드
-            </button>
-            <button
-              className="btn accent big"
-              onClick={() => {
-                const v = active
-                setActive(null)
-                props.onMake(v)
-              }}
-            >
-              🤖 {active.subject} 문제 더 만들기
-            </button>
-            <button className="btn ghost big" onClick={() => setActive(null)}>
-              닫기
-            </button>
-          </div>
-        </div>
-      )}
-    </main>
-  )
-}
-
-function BuildingBtn(props: {
-  emoji: string
-  label: string
-  badge?: boolean
-  count?: number
-  onClick: () => void
-}) {
-  return (
-    <button className="building" onClick={props.onClick}>
-      <span className="building-emoji">{props.emoji}</span>
-      <span className="building-label">{props.label}</span>
-      {props.badge && <span className="dot" />}
-      {props.count ? <span className="badge-count sm">{props.count}</span> : null}
-    </button>
-  )
-}
-
 // ── 내 집 (정체성/꾸미기) ─────────────────────────────────────────
 function Room(props: {
   profile: PlayerProfile
@@ -708,77 +577,6 @@ function Room(props: {
       <button className="btn accent big" onClick={props.onShop}>
         🛍️ 옷·가구 사러 가기
       </button>
-      <button className="btn ghost big" onClick={props.onBack}>
-        마을로
-      </button>
-    </main>
-  )
-}
-
-// ── 우리 반 (가상 공간 + 각자의 집) ───────────────────────────────
-function Classroom(props: { profile: PlayerProfile; level: number; onBack: () => void }) {
-  const live = Boolean(store.loadClassmates)
-  const me: Classmate = {
-    name: props.profile.characterName,
-    avatar: props.profile.avatar,
-    xp: props.profile.xp,
-    houseStage: props.profile.houseStage,
-    me: true,
-  }
-  const [mates, setMates] = useState<Classmate[]>(() =>
-    [...CLASSMATES, me].sort((a, b) => b.xp - a.xp),
-  )
-  const [picked, setPicked] = useState<Classmate | null>(null)
-
-  useEffect(() => {
-    if (!store.loadClassmates) return
-    store
-      .loadClassmates()
-      .then((data) => {
-        if (data.length > 0) setMates(data.sort((a, b) => b.xp - a.xp))
-      })
-      .catch(() => {})
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  return (
-    <main className="screen classroom">
-      <h1 className="title">🗺️ 우리 반 마을</h1>
-      <p className="subtitle">
-        친구들이 각자 집을 짓고 있어요{live ? ' · 실시간' : ''} · 문제를 풀수록 내 집이 커져요
-      </p>
-
-      <div className="village-map">
-        {mates.map((c, i) => (
-          <button
-            key={c.name + i}
-            className={`plot ${c.me ? 'mine' : ''}`}
-            onClick={() => setPicked(c)}
-          >
-            <span className="plot-house">{houseInfo(c.houseStage).emoji}</span>
-            <span className="plot-avatar">{c.avatar}</span>
-            <span className="plot-name">{c.me ? '나' : c.name}</span>
-          </button>
-        ))}
-      </div>
-
-      {picked && (
-        <div className="modal-backdrop" onClick={() => setPicked(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-emoji">{houseInfo(picked.houseStage).emoji}</div>
-            <div className="modal-name">
-              {picked.avatar} {picked.me ? `${picked.name} (나)` : picked.name}
-            </div>
-            <p className="modal-line">
-              {houseInfo(picked.houseStage).name} · {picked.xp} 경험치
-            </p>
-            <button className="btn ghost big" onClick={() => setPicked(null)}>
-              닫기
-            </button>
-          </div>
-        </div>
-      )}
-
       <button className="btn ghost big" onClick={props.onBack}>
         마을로
       </button>

@@ -829,7 +829,233 @@ body {
   font-weight: 700;
 }
 
-/* classroom village map */
+/* ── 걸어다니는 마을 맵 ─────────────────────────────────────── */
+.townmap {
+  gap: 10px;
+}
+.map-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.map-title {
+  margin: 0;
+  font-size: 20px;
+}
+.map-hint {
+  font-size: 11px;
+  color: var(--muted);
+}
+.viewport {
+  position: relative;
+  width: 100%;
+  height: 52vh;
+  min-height: 320px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #6fb06b;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.25);
+  touch-action: none;
+}
+.world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: transform 0.14s ease-out;
+}
+.tile {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  line-height: 1;
+}
+.tile-grass {
+  background: #6fb06b;
+}
+.tile-path {
+  background: #d9c08a;
+}
+.tile-water {
+  background: #5aa9e6;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+.tile-tree {
+  background: #6fb06b;
+}
+.tile-flower {
+  background: #6fb06b;
+}
+/* 잔디 격자 살짝 */
+.tile-grass:nth-child(2n) {
+  background: #6cab68;
+}
+
+.sprite {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  cursor: pointer;
+  z-index: 2;
+}
+.sprite-emoji {
+  position: relative;
+  font-size: 30px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.35));
+}
+.sprite-facility .sprite-emoji,
+.sprite-house .sprite-emoji,
+.sprite-myhouse .sprite-emoji {
+  font-size: 34px;
+}
+.sprite-tag {
+  position: absolute;
+  bottom: -9px;
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: rgba(20, 24, 48, 0.78);
+  color: #fff;
+  padding: 1px 6px;
+  border-radius: 999px;
+  opacity: 0.85;
+  transition: all 0.12s ease;
+}
+.sprite.near .sprite-tag {
+  opacity: 1;
+  background: var(--primary);
+  transform: scale(1.08) translateY(-2px);
+}
+.sprite.near .sprite-emoji {
+  transform: scale(1.12);
+}
+.player {
+  z-index: 5;
+  transition: left 0.13s ease-out, top 0.13s ease-out;
+}
+.player .sprite-emoji {
+  font-size: 32px;
+}
+.player-hat {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+}
+.near-banner {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 24, 48, 0.9);
+  border: 1px solid var(--primary2);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 14px;
+  border-radius: 999px;
+  z-index: 8;
+  animation: slidein 0.15s ease;
+}
+
+/* 조작 패드 */
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px;
+}
+.dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 46px);
+  grid-template-rows: repeat(3, 46px);
+  gap: 4px;
+}
+.dbtn {
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: 12px;
+  font-size: 16px;
+  cursor: pointer;
+  user-select: none;
+}
+.dbtn:active {
+  background: var(--primary);
+}
+.dbtn.up {
+  grid-column: 2;
+  grid-row: 1;
+}
+.dbtn.left {
+  grid-column: 1;
+  grid-row: 2;
+}
+.dbtn.right {
+  grid-column: 3;
+  grid-row: 2;
+}
+.dbtn.down {
+  grid-column: 2;
+  grid-row: 3;
+}
+.abtn {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(180deg, var(--primary2), var(--primary));
+  color: #fff;
+  font-size: 26px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(108, 92, 231, 0.5);
+}
+.abtn:disabled {
+  opacity: 0.4;
+  box-shadow: none;
+}
+.abtn:active {
+  transform: scale(0.94);
+}
+
+/* 친구 집 방문 */
+.visit-house {
+  font-size: 60px;
+}
+.visit-room {
+  background: linear-gradient(180deg, #2a2150, #20284e);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  height: 90px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 10px;
+  margin: 4px 0;
+}
+.visit-floor {
+  position: relative;
+  font-size: 40px;
+}
+.visit-sofa,
+.visit-plant {
+  font-size: 24px;
+  margin: 0 6px;
+}
+.visit-stat {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
+}
+
+/* classroom village map (legacy, 미사용) */
 .village-map {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
