@@ -80,6 +80,39 @@ src/
 
 ---
 
+## 🎮 픽셀 마을 (게임엔진 베타 — Phaser 3)
+
+동물의 숲/ZEP 풍을 본격 게임엔진으로 옮기는 마이그레이션의 1차 슬라이스.
+**내 집 → "🎮 픽셀 마을 입장"** 으로 들어갑니다.
+
+- **엔진**: Phaser 3 (MIT). 기존 React/Vite/Firebase 그대로 유지, **추가형(베타)** 으로 통합
+- **지금 동작**: 마을(남)+숲(북)+강/다리 하나의 월드, 아케이드 물리 **충돌**, **카메라 추적**,
+  방향키/WASD + 화면 D패드 이동, NPC(과목)·시설·**채집밭** 상호작용
+- **학습 연결(핵심)**: 채집밭에서 A → React 학습 퀴즈가 **오버레이로** 뜨고(월드 유지),
+  정답률에 따라 🥕 수확 + 벨 획득 → 밭은 잠시 후 다시 자람 (가이드의 "채집=학습" 패턴)
+- **React ↔ Phaser**: `src/game/bridge.ts` 의 경량 이벤트로 통신 (Phaser는 **지연 로드 청크**라
+  메인 번들은 그대로 가벼움)
+
+### 코드 구조 (가이드 기준)
+```
+src/game/
+  bridge.ts            # React ↔ Phaser 이벤트(의존성 0)
+  main.ts              # createGame
+  scenes/
+    BootScene.ts       # ⬅️ 플레이스홀더 텍스처 생성 (여기만 교체하면 진짜 아트 적용)
+    WorldScene.ts      # 마을+숲+이동/충돌/상호작용/채집
+    UIScene.ts         # 벨·인벤토리 HUD
+src/react/game/PhaserGame.tsx   # 캔버스 마운트 + DOM 조작 + 브리지 연동
+```
+
+### ⚠️ 에셋
+현재는 **코드로 생성한 플레이스홀더 타일**로 동작합니다. **Sprout Lands / Kenney / LPC**
+같은 무료 아트는 라이선스상 직접 내려받아 `BootScene` 의 `generate*` 를 `this.load.image/
+spritesheet(...)` 로 바꾸면 됩니다(톤 통일 위해 메인 팩 1개 고정 권장). Tiled(`.tmj`) 맵도
+`WorldScene` 의 절차적 생성 대신 로드하도록 교체 가능.
+
+---
+
 ## 다음 단계 로드맵
 
 ### ✅ AI 자동 변환 (완료)

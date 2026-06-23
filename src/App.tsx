@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { QuestionCard, type PlayMode } from './components/QuestionCard'
 import { TownMap, type FacilityScreen } from './components/TownMap'
 import { AiMaker } from './components/AiMaker'
+import { PhaserGame } from './react/game/PhaserGame'
+import { bridge } from './game/bridge'
 import { store, type WrongNote } from './lib/storage'
 import {
   type PlayerProfile,
@@ -34,6 +36,7 @@ import {
   houseInfo,
   nextHouseCost,
   CLASSMATES,
+  villagerById,
   type Villager,
   type Furniture,
   type Classmate,
@@ -42,7 +45,14 @@ import { orderByMastery, updateEntry, type MasteryMap } from './game/mastery'
 import { VILLAGER_PROBLEMS } from './data/villagerQuizzes'
 import type { Problem } from './types/problem'
 
-type Screen = 'town' | 'quiz' | 'result' | 'wrong' | 'ai' | 'shop' | 'missions' | 'ranking' | 'room'
+type Screen = 'town' | 'quiz' | 'result' | 'wrong' | 'ai' | 'shop' | 'missions' | 'ranking' | 'room' | 'game'
+
+function getCarrots(): number {
+  return Number(localStorage.getItem('sg.carrots') || '0')
+}
+function addCarrots(n: number) {
+  localStorage.setItem('sg.carrots', String(getCarrots() + n))
+}
 
 interface SessionState {
   problems: Problem[]
@@ -56,6 +66,8 @@ interface SessionState {
   gained: number
   wrong: WrongNote[]
   masteryUpdates: MasteryMap // 이번 세션의 문항별 숙련도 변화
+  fromGame?: boolean // Phaser 게임에서 시작된 세션(오버레이)
+  plotId?: string // 채집밭에서 시작된 경우
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -81,6 +93,12 @@ export default function App() {
   const [earnedBadges, setEarnedBadges] = useState<Badge[]>([])
   const [aiVillager, setAiVillager] = useState<Villager | null>(null)
   const [classmates, setClassmates] = useState<Classmate[]>(CLASSMATES)
+  const [gameSession, setGameSession] = useState<SessionState | null>(null)
+  const bridgeRef = useRef<{
+    ui: (d: { type: FacilityScreen }) => void
+    villager: (d: { id: string }) => void
+    harvest: (d: { plotId: string; subject: string }) => void
+  } | null>(null)
 
   useEffect(() => {
     store.loadProfile().then((p) => {
@@ -221,12 +239,12 @@ export default function App() {
     }
   }
 
-  async function finishSession(s: SessionState) {
+  // 세션 결과를 프로필에 반영 (일반/게임 공용)
+  function applyResult(s: SessionState): { updated: PlayerProfile; fresh: Badge[] } {
     const score = Math.round((s.correct / s.problems.length) * 100)
-    const friendGain = s.villagerId ? s.correct * 4 + 4 : 0
     const villagerFriends = { ...profile.villagerFriends }
     if (s.villagerId) {
-      villagerFriends[s.villagerId] = (villagerFriends[s.villagerId] ?? 0) + friendGain
+      villagerFriends[s.villagerId] = (villagerFriends[s.villagerId] ?? 0) + s.correct * 4 + 4
     }
     const updated: PlayerProfile = {
       ...profile,
@@ -244,21 +262,25 @@ export default function App() {
         bestCombo: Math.max(profile.daily.bestCombo, s.bestCombo),
       },
     }
-    const perfect = s.correct === s.problems.length
     const fresh = newlyEarnedBadges({
       profile: updated,
       sessionCorrect: s.correct,
       sessionTotal: s.problems.length,
       sessionBestCombo: s.bestCombo,
-      perfect,
+      perfect: s.correct === s.problems.length,
     })
     updated.badges = [...updated.badges, ...fresh.map((b) => b.id)]
+    return { updated, fresh }
+  }
+
+  async function finishSession(s: SessionState) {
+    const { updated, fresh } = applyResult(s)
     setProfile(updated)
     setEarnedBadges(fresh)
     await store.saveProfile(updated)
-    store.syncProfile?.(updated).catch(() => {}) // 랭킹·우리반 공간에 내 정보 반영
+    store.syncProfile?.(updated).catch(() => {})
     setWrongNotes(await store.loadWrongNotes())
-    setSession({ ...s, gained: s.gained })
+    setSession(s)
     setScreen('result')
   }
 
@@ -270,6 +292,99 @@ export default function App() {
     setAiVillager(v)
     setScreen('ai')
   }
+
+  // ── 게임(Phaser) 연동: 월드를 유지한 채 퀴즈를 오버레이로 ──
+  function startGameQuiz(problems: Problem[], villager?: Villager, plotId?: string) {
+    if (!problems || !problems.length) return
+    setGameSession({
+      problems: prepareProblems(problems, 'study', profile.mastery),
+      mode: 'study',
+      villagerId: villager?.id,
+      villagerName: villager?.name,
+      i: 0,
+      combo: 0,
+      bestCombo: 0,
+      correct: 0,
+      gained: 0,
+      wrong: [],
+      masteryUpdates: {},
+      fromGame: true,
+      plotId,
+    })
+  }
+
+  async function handleGameSubmit(r: { correct: boolean; responses: string[]; timeLeftRatio: number }) {
+    if (!gameSession) return
+    const problem = gameSession.problems[gameSession.i]
+    const combo = r.correct ? gameSession.combo + 1 : 0
+    const gained = r.correct
+      ? computeScore({ basePoints: problem.points, combo, timeLeftRatio: r.timeLeftRatio })
+      : 0
+    const wrong = [...gameSession.wrong]
+    if (!r.correct) {
+      const note: WrongNote = { problem, userResponses: r.responses, wrongAt: Date.now(), resolved: false }
+      wrong.push(note)
+      await store.upsertWrongNote(note)
+    } else {
+      await store.markResolved(problem.id)
+    }
+    const masteryUpdates: MasteryMap = {
+      ...gameSession.masteryUpdates,
+      [problem.id]: updateEntry(gameSession.masteryUpdates[problem.id] ?? profile.mastery[problem.id], r.correct),
+    }
+    const next: SessionState = {
+      ...gameSession,
+      combo,
+      bestCombo: Math.max(gameSession.bestCombo, combo),
+      correct: gameSession.correct + (r.correct ? 1 : 0),
+      gained: gameSession.gained + gained,
+      wrong,
+      masteryUpdates,
+      i: gameSession.i + 1,
+    }
+    if (next.i >= next.problems.length) {
+      const { updated } = applyResult(next)
+      setProfile(updated)
+      await store.saveProfile(updated)
+      store.syncProfile?.(updated).catch(() => {})
+      setWrongNotes(await store.loadWrongNotes())
+      if (next.plotId) {
+        const success = next.correct / next.problems.length >= 0.5
+        if (success) addCarrots(next.correct)
+        bridge.emit('react:reward', { plotId: next.plotId, correct: next.correct, total: next.problems.length })
+      }
+      setGameSession(null) // 게임 월드로 복귀 (캔버스 유지)
+    } else {
+      setGameSession(next)
+    }
+  }
+
+  // 브리지 핸들러는 항상 최신 상태를 보도록 ref 로 보관
+  bridgeRef.current = {
+    ui: (d) => setScreen(d.type),
+    villager: (d) => {
+      const v = villagerById(d.id)
+      if (v) startGameQuiz(VILLAGER_PROBLEMS[v.id], v)
+    },
+    harvest: (d) => {
+      const v = villagerById(d.subject)
+      startGameQuiz(VILLAGER_PROBLEMS[d.subject], v, d.plotId)
+    },
+  }
+
+  useEffect(() => {
+    const ui = (d: { type: FacilityScreen }) => bridgeRef.current?.ui(d)
+    const villager = (d: { id: string }) => bridgeRef.current?.villager(d)
+    const harvest = (d: { plotId: string; subject: string }) => bridgeRef.current?.harvest(d)
+    bridge.on('phaser:ui', ui)
+    bridge.on('phaser:villager', villager)
+    bridge.on('phaser:harvest', harvest)
+    return () => {
+      bridge.off('phaser:ui', ui)
+      bridge.off('phaser:villager', villager)
+      bridge.off('phaser:harvest', harvest)
+    }
+  }, [])
 
   if (!loaded) {
     return (
@@ -337,6 +452,34 @@ export default function App() {
         />
       )}
 
+      {screen === 'game' && (
+        <>
+          <PhaserGame
+            avatar={profile.avatar}
+            coins={profile.coins}
+            carrots={getCarrots()}
+            onExit={() => {
+              setGameSession(null)
+              setScreen('town')
+            }}
+          />
+          {gameSession && (
+            <div className="game-quiz-overlay">
+              <QuestionCard
+                key={gameSession.problems[gameSession.i].id}
+                problem={gameSession.problems[gameSession.i]}
+                index={gameSession.i}
+                total={gameSession.problems.length}
+                combo={gameSession.combo}
+                mode={gameSession.mode}
+                onSubmit={handleGameSubmit}
+                onExit={() => setGameSession(null)}
+              />
+            </div>
+          )}
+        </>
+      )}
+
       {screen === 'ai' && (
         <AiMaker
           villagerName={aiVillager?.name}
@@ -370,6 +513,7 @@ export default function App() {
           onRename={renameCharacter}
           onUpgrade={upgradeHouse}
           onShop={() => setScreen('shop')}
+          onGame={() => setScreen('game')}
           onBack={() => setScreen('town')}
         />
       )}
@@ -496,6 +640,7 @@ function Room(props: {
   onRename: (n: string) => void
   onUpgrade: () => void
   onShop: () => void
+  onGame: () => void
   onBack: () => void
 }) {
   const { profile } = props
@@ -580,6 +725,9 @@ function Room(props: {
 
       <button className="btn accent big" onClick={props.onShop}>
         🛍️ 옷·가구 사러 가기
+      </button>
+      <button className="btn challenge big" onClick={props.onGame}>
+        🎮 픽셀 마을 (게임엔진 베타) 입장
       </button>
       <button className="btn ghost big" onClick={props.onBack}>
         마을로
