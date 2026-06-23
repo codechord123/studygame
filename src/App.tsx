@@ -5,6 +5,7 @@ import { MemoryGame } from './components/MemoryGame'
 import { TownMap, type FacilityScreen } from './components/TownMap'
 import { AiMaker } from './components/AiMaker'
 import { ProblemCreate } from './components/ProblemCreate'
+import { AnimalCharacter } from './components/AnimalCharacter'
 import { PhaserGame } from './react/game/PhaserGame'
 import { bridge } from './game/bridge'
 import { store, type WrongNote } from './lib/storage'
@@ -809,7 +810,7 @@ function Onboarding(props: { onDone: (name: string, avatar: string) => void }) {
                 className={`avatar-opt ${avatar === a ? 'sel' : ''}`}
                 onClick={() => setAvatar(a)}
               >
-                {a}
+                <AnimalCharacter avatar={a} equip={{}} className="avatar-thumb" />
               </button>
             ))}
           </div>
@@ -983,14 +984,10 @@ function Plaza(props: {
 
 // ── 홈 (두 파트: 공부하기 / 꾸미기) ───────────────────────────────
 function Home(props: { profile: PlayerProfile; level: number; onGo: (s: Screen) => void }) {
-  const hat = equippedEmoji(props.profile.equip, 'hat')
   return (
     <main className="screen home2">
       <div className="home-hello">
-        <span className="home-avatar">
-          {hat && <span className="ha-hat">{hat}</span>}
-          {props.profile.avatar}
-        </span>
+        <AnimalCharacter avatar={props.profile.avatar} equip={props.profile.equip} className="home-char" />
         <div>
           <h1 className="home-name">{props.profile.characterName}</h1>
           <p className="home-title">{titleForLevel(props.level)} · Lv.{props.level}</p>
@@ -1074,15 +1071,7 @@ function Costume(props: {
       <p className="subtitle">🔔 {profile.coins} 벨 · 보유 {ownedCount}개 · Lv.{level}</p>
 
       <div className="char-preview big">
-        <div className="cp-stage">
-          <span className="cp-cape">{equippedEmoji(profile.equip, 'cape')}</span>
-          <span className="cp-base">
-            <span className="cp-hat">{equippedEmoji(profile.equip, 'hat')}</span>
-            {profile.avatar}
-            <span className="cp-face">{equippedEmoji(profile.equip, 'face')}</span>
-          </span>
-          <span className="cp-hand">{equippedEmoji(profile.equip, 'hand')}</span>
-        </div>
+        <AnimalCharacter avatar={profile.avatar} equip={profile.equip} className="cp-char" />
         <div className="cp-shadow" />
       </div>
 
@@ -1485,7 +1474,7 @@ function Room(props: {
             className={`avatar-opt ${profile.avatar === a ? 'sel' : ''}`}
             onClick={() => props.onAvatar(a)}
           >
-            {a}
+            <AnimalCharacter avatar={a} equip={{}} className="avatar-thumb" />
           </button>
         ))}
       </div>

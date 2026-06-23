@@ -549,12 +549,14 @@ body {
   gap: 8px;
 }
 .avatar-opt {
-  font-size: 28px;
-  padding: 8px 0;
+  padding: 5px;
   background: var(--card);
   border: 2px solid var(--line);
   border-radius: 12px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .avatar-opt.sel {
   border-color: var(--accent);
@@ -1305,6 +1307,64 @@ body {
 .pillar-desc {
   font-size: 12px;
   opacity: 0.92;
+}
+
+/* ── 전신 동물 캐릭터 ──────────────────────────────────────────── */
+.character {
+  position: relative;
+  width: 100%;
+  line-height: 1;
+  font-size: 40px; /* 오버레이(코스튬) 크기 기준 */
+}
+.character-svg {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+.ovl {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+}
+.ovl-hat {
+  left: 50%;
+  top: 1%;
+  transform: translate(-50%, -28%);
+  font-size: 0.72em;
+}
+.ovl-face {
+  left: 50%;
+  top: 30%;
+  transform: translate(-50%, -50%);
+  font-size: 0.5em;
+}
+.ovl-hand {
+  left: 74%;
+  top: 62%;
+  font-size: 0.6em;
+}
+.ovl-cape {
+  left: 50%;
+  top: 56%;
+  transform: translate(-50%, -50%);
+  font-size: 0.95em;
+  z-index: 0;
+}
+.cp-char {
+  width: 160px;
+  font-size: 60px;
+}
+.home-char {
+  width: 64px;
+  flex: 0 0 auto;
+  font-size: 28px;
+}
+.avatar-thumb {
+  width: 100%;
+  font-size: 13px;
 }
 
 /* ── 꾸미기 (코스튬) ───────────────────────────────────────────── */
