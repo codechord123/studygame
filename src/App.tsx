@@ -12,7 +12,9 @@ import { AnimalCharacter } from './components/AnimalCharacter'
 import { PhaserGame } from './react/game/PhaserGame'
 import { bridge } from './game/bridge'
 import { store, type WrongNote } from './lib/storage'
-import { playWin } from './lib/sfx'
+import { playWin, isMuted, setMuted } from './lib/sfx'
+import { makeBackup, restoreBackup, inspectBackup } from './lib/backup'
+import { firebaseEnabled } from './lib/firebase/config'
 import {
   type PlayerProfile,
   emptyProfile,
@@ -100,6 +102,7 @@ type Screen =
   | 'game'
   | 'dex'
   | 'dashboard'
+  | 'settings'
 
 function hatOf(p: PlayerProfile): string | undefined {
   return equippedEmoji(p.equip, 'hat')
@@ -795,6 +798,8 @@ export default function App() {
 
       {screen === 'dex' && <Dex profile={profile} onBack={() => setScreen('home')} />}
 
+      {screen === 'settings' && <Settings onBack={() => setScreen('home')} />}
+
       {screen === 'missions' && (
         <Missions profile={profile} onClaim={claimMission} onBack={() => setScreen('home')} />
       )}
@@ -1319,6 +1324,7 @@ function MainMenu(props: { onGo: (s: Screen) => void; onClose: () => void }) {
     { s: 'room', emoji: '🛖', label: '내 집' },
     { s: 'walk', emoji: '🚶', label: '마을 산책' },
     { s: 'game', emoji: '🎮', label: '필드 (베타)' },
+    { s: 'settings', emoji: '⚙️', label: '설정·백업' },
   ]
   return (
     <div className="modal-backdrop" onClick={props.onClose}>
@@ -1336,6 +1342,126 @@ function MainMenu(props: { onGo: (s: Screen) => void; onClose: () => void }) {
         </button>
       </div>
     </div>
+  )
+}
+
+// ── 설정 · 데이터 백업/복원 ───────────────────────────────────────
+function Settings(props: { onBack: () => void }) {
+  const [muted, setMutedState] = useState(isMuted())
+  const [code, setCode] = useState('')
+  const [restoreText, setRestoreText] = useState('')
+  const [msg, setMsg] = useState<{ kind: 'good' | 'bad'; text: string } | null>(null)
+
+  function genBackup() {
+    const c = makeBackup(Date.now())
+    setCode(c)
+    setMsg({ kind: 'good', text: '백업 코드를 만들었어요. 복사하거나 파일로 저장하세요.' })
+  }
+  async function copyCode() {
+    try {
+      await navigator.clipboard.writeText(code)
+      setMsg({ kind: 'good', text: '복사했어요! 안전한 곳(메모·메일)에 보관하세요.' })
+    } catch {
+      setMsg({ kind: 'bad', text: '복사가 안 돼요. 길게 눌러 직접 복사해 주세요.' })
+    }
+  }
+  function downloadCode() {
+    const blob = new Blob([code], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `별숲마을-백업.txt`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+  function doRestore() {
+    const info = inspectBackup(restoreText)
+    if (!info.ok) {
+      setMsg({ kind: 'bad', text: info.error ?? '백업 코드를 확인해 주세요.' })
+      return
+    }
+    const when = info.at ? new Date(info.at).toLocaleString('ko-KR') : ''
+    if (!window.confirm(`이 백업으로 되돌릴까요?\n(${when} 저장 · 지금 진행은 덮어써집니다)`)) return
+    const r = restoreBackup(restoreText)
+    if (r.ok) {
+      setMsg({ kind: 'good', text: '복원했어요! 잠시 후 새로고침됩니다.' })
+      window.setTimeout(() => window.location.reload(), 900)
+    } else {
+      setMsg({ kind: 'bad', text: r.error ?? '복원에 실패했어요.' })
+    }
+  }
+
+  return (
+    <main className="screen settings">
+      <h1 className="title">⚙️ 설정 · 백업</h1>
+
+      {msg && <div className={`feedback ${msg.kind}`}>{msg.text}</div>}
+
+      <section className="set-card">
+        <h3 className="set-h">🔊 소리</h3>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={!muted}
+            onChange={(e) => {
+              const on = e.target.checked
+              setMuted(!on)
+              setMutedState(!on)
+            }}
+          />{' '}
+          효과음 켜기
+        </label>
+      </section>
+
+      <section className="set-card">
+        <h3 className="set-h">☁️ 저장 상태</h3>
+        <p className="set-note">
+          {firebaseEnabled
+            ? '클라우드 동기화가 켜져 있어 기기가 바뀌어도 진행이 유지됩니다.'
+            : '이 기기(브라우저)에만 저장돼요. 캐시를 지우거나 기기를 바꾸면 사라질 수 있으니 가끔 백업하세요.'}
+        </p>
+      </section>
+
+      <section className="set-card">
+        <h3 className="set-h">💾 백업 만들기</h3>
+        <p className="set-note">레벨·코스튬·코인·오답노트·내가 만든 문제를 코드 하나로 저장해요.</p>
+        <button className="btn primary" onClick={genBackup}>
+          백업 코드 만들기
+        </button>
+        {code && (
+          <>
+            <textarea className="field-input ta code-box" readOnly rows={3} value={code} onFocus={(e) => e.target.select()} />
+            <div className="set-row">
+              <button className="btn" onClick={copyCode}>
+                📋 복사
+              </button>
+              <button className="btn" onClick={downloadCode}>
+                ⬇️ 파일 저장
+              </button>
+            </div>
+          </>
+        )}
+      </section>
+
+      <section className="set-card">
+        <h3 className="set-h">♻️ 백업으로 복원</h3>
+        <p className="set-note">백업 코드를 붙여넣고 복원하면 그 시점으로 되돌아가요. 지금 진행은 덮어써집니다.</p>
+        <textarea
+          className="field-input ta"
+          rows={3}
+          placeholder="백업 코드를 여기에 붙여넣어요 (BYEOLSUP1-…)"
+          value={restoreText}
+          onChange={(e) => setRestoreText(e.target.value)}
+        />
+        <button className="btn warn" disabled={!restoreText.trim()} onClick={doRestore}>
+          이 코드로 복원하기
+        </button>
+      </section>
+
+      <button className="btn ghost big" onClick={props.onBack}>
+        돌아가기
+      </button>
+    </main>
   )
 }
 

@@ -2120,6 +2120,44 @@ body {
   }
 }
 
+/* 설정 · 백업 */
+.screen.settings {
+  gap: 14px;
+}
+.set-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.set-h {
+  margin: 0;
+  font-size: 15px;
+}
+.set-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.set-row {
+  display: flex;
+  gap: 8px;
+}
+.code-box {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 11px;
+  word-break: break-all;
+}
+.btn.warn {
+  background: rgba(255, 107, 107, 0.16);
+  border: 1px solid var(--bad);
+  color: #ffd2d2;
+}
+
 /* 결과 — 색종이 */
 .confetti {
   position: fixed;
