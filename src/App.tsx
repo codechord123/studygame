@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { sampleQuiz } from './data/sampleQuiz'
-import { QuestionCard } from './components/QuestionCard'
+import { QuestionCard, type PlayMode } from './components/QuestionCard'
 import { AiMaker } from './components/AiMaker'
 import { store, type WrongNote } from './lib/storage'
 import {
@@ -38,12 +38,30 @@ function setPlayerName(name: string) {
 
 interface SessionState {
   problems: Problem[]
+  mode: PlayMode
   i: number
   combo: number
   bestCombo: number
   correct: number
   gained: number
   wrong: WrongNote[]
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
+/** 출제 순서: 도전=셔플 / 학습=이전에 틀린 문제 먼저(적응형) */
+function prepareProblems(problems: Problem[], mode: PlayMode, wrongIds: Set<string>): Problem[] {
+  if (mode === 'challenge') return shuffle(problems)
+  const wrong = problems.filter((p) => wrongIds.has(p.id))
+  const rest = problems.filter((p) => !wrongIds.has(p.id))
+  return [...wrong, ...rest]
 }
 
 export default function App() {
@@ -87,9 +105,11 @@ export default function App() {
   const { level, cur, need } = levelProgress(profile.xp)
   const pet = petForLevel(level)
 
-  function startQuiz(problems: Problem[]) {
+  function startQuiz(problems: Problem[], mode: PlayMode = 'study') {
+    const wrongIds = new Set(wrongNotes.filter((n) => !n.resolved).map((n) => n.problem.id))
     setSession({
-      problems,
+      problems: prepareProblems(problems, mode, wrongIds),
+      mode,
       i: 0,
       combo: 0,
       bestCombo: 0,
@@ -198,7 +218,8 @@ export default function App() {
         <Home
           unresolved={wrongNotes.filter((n) => !n.resolved).length}
           badges={profile.badges}
-          onStart={() => startQuiz(sampleQuiz.problems)}
+          onStudy={() => startQuiz(sampleQuiz.problems, 'study')}
+          onChallenge={() => startQuiz(sampleQuiz.problems, 'challenge')}
           onWrong={() => setScreen('wrong')}
           onAi={() => setScreen('ai')}
           onShop={() => setScreen('shop')}
@@ -236,6 +257,7 @@ export default function App() {
           index={session.i}
           total={session.problems.length}
           combo={session.combo}
+          mode={session.mode}
           onSubmit={handleSubmit}
         />
       )}
@@ -305,7 +327,8 @@ function Hud(props: {
 function Home(props: {
   unresolved: number
   badges: string[]
-  onStart: () => void
+  onStudy: () => void
+  onChallenge: () => void
   onWrong: () => void
   onAi: () => void
   onShop: () => void
@@ -315,12 +338,23 @@ function Home(props: {
 }) {
   return (
     <main className="screen home">
-      <h1 className="title">📐 분수의 덧셈과 뺄셈</h1>
-      <p className="subtitle">수학 5-1 · 5단원 심화</p>
+      <h1 className="title">📐 {sampleQuiz.title}</h1>
+      <p className="subtitle">
+        {sampleQuiz.subject} {sampleQuiz.grade} · {sampleQuiz.unit}
+      </p>
 
-      <button className="btn primary big" onClick={props.onStart}>
-        ▶ 학습 시작
-      </button>
+      <div className="mode-row">
+        <button className="btn primary mode-btn" onClick={props.onStudy}>
+          <span className="mode-emoji">📖</span>
+          <span className="mode-label">학습 모드</span>
+          <span className="mode-desc">타이머 없이 · 정답·풀이 확인</span>
+        </button>
+        <button className="btn challenge mode-btn" onClick={props.onChallenge}>
+          <span className="mode-emoji">⚡</span>
+          <span className="mode-label">도전 모드</span>
+          <span className="mode-desc">타이머 · 콤보 · 점수</span>
+        </button>
+      </div>
       <button className="btn accent big" onClick={props.onAi}>
         🤖 AI 문제 만들기
       </button>

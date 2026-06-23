@@ -1,29 +1,37 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Problem } from '../types/problem'
-import { gradeProblem } from '../lib/grading'
+import { gradeProblem, correctAnswerText } from '../lib/grading'
+
+export type PlayMode = 'study' | 'challenge'
 
 interface Props {
   problem: Problem
   index: number
   total: number
   combo: number
-  /** 제한 시간(초). 0이면 타이머 없음 */
-  timeLimit?: number
-  onSubmit: (result: {
-    correct: boolean
-    responses: string[]
-    timeLeftRatio: number
-  }) => void
+  mode: PlayMode
+  onSubmit: (result: { correct: boolean; responses: string[]; timeLeftRatio: number }) => void
 }
 
-export function QuestionCard({ problem, index, total, combo, timeLimit = 30, onSubmit }: Props) {
+/** 도전 모드 제한 시간: 난이도 + 문제 길이에 따라 가변 */
+function challengeTime(problem: Problem): number {
+  const base = 14 + problem.difficulty * 7 // 난이도 1→21, 2→28, 3→35초
+  const long = problem.prompt.length > 50 ? 12 : 0 // 긴 문장제는 더 줌
+  return base + long
+}
+
+export function QuestionCard({ problem, index, total, combo, mode, onSubmit }: Props) {
+  const timeLimit = mode === 'challenge' ? challengeTime(problem) : 0
   const blankCount = problem.type === 'fill_blank' ? problem.blanks.length : 1
   const [responses, setResponses] = useState<string[]>(() => Array(blankCount).fill(''))
   const [picked, setPicked] = useState<number | null>(null)
   const [submitted, setSubmitted] = useState(false)
   const [result, setResult] = useState<ReturnType<typeof gradeProblem> | null>(null)
   const [timeLeft, setTimeLeft] = useState(timeLimit)
-  const startRef = useRef(Date.now())
+  const pendingRef = useRef<{ correct: boolean; responses: string[]; timeLeftRatio: number } | null>(
+    null,
+  )
+  const advancedRef = useRef(false)
 
   // 문제가 바뀌면 상태 초기화
   useEffect(() => {
@@ -32,10 +40,11 @@ export function QuestionCard({ problem, index, total, combo, timeLimit = 30, onS
     setSubmitted(false)
     setResult(null)
     setTimeLeft(timeLimit)
-    startRef.current = Date.now()
+    pendingRef.current = null
+    advancedRef.current = false
   }, [problem.id, blankCount, timeLimit])
 
-  // 타이머
+  // 타이머 (도전 모드)
   useEffect(() => {
     if (!timeLimit || submitted) return
     if (timeLeft <= 0) {
@@ -57,6 +66,12 @@ export function QuestionCard({ problem, index, total, combo, timeLimit = 30, onS
     return responses
   }
 
+  function goNext() {
+    if (advancedRef.current || !pendingRef.current) return
+    advancedRef.current = true
+    onSubmit(pendingRef.current)
+  }
+
   function handleSubmit() {
     if (submitted) return
     const resp = buildResponses()
@@ -64,10 +79,12 @@ export function QuestionCard({ problem, index, total, combo, timeLimit = 30, onS
     setResult(r)
     setSubmitted(true)
     const timeLeftRatio = timeLimit ? Math.max(0, timeLeft) / timeLimit : 0
-    // 잠깐 피드백을 보여준 뒤 다음으로
-    window.setTimeout(() => {
-      onSubmit({ correct: r.correct, responses: resp, timeLeftRatio })
-    }, 1100)
+    pendingRef.current = { correct: r.correct, responses: resp, timeLeftRatio }
+    // 도전 모드에서 정답이면 잠깐 보여주고 자동 진행. 그 외(오답·학습 모드)는
+    // "다음" 버튼을 눌러야 넘어간다 — 정답과 풀이를 충분히 읽도록.
+    if (mode === 'challenge' && r.correct) {
+      window.setTimeout(goNext, 900)
+    }
   }
 
   const canSubmit =
@@ -110,6 +127,7 @@ export function QuestionCard({ problem, index, total, combo, timeLimit = 30, onS
                   }`}
                   value={responses[bi] ?? ''}
                   disabled={submitted}
+                  inputMode={problem.numericAnswer ? 'text' : undefined}
                   onChange={(e) =>
                     setResponses((r) => {
                       const c = [...r]
@@ -138,12 +156,7 @@ export function QuestionCard({ problem, index, total, combo, timeLimit = 30, onS
               else if (isPicked) cls += ' wrong'
             } else if (isPicked) cls += ' picked'
             return (
-              <button
-                key={i}
-                className={cls}
-                disabled={submitted}
-                onClick={() => setPicked(i)}
-              >
+              <button key={i} className={cls} disabled={submitted} onClick={() => setPicked(i)}>
                 <span className="choice-num">{i + 1}</span> {c}
               </button>
             )
@@ -170,28 +183,47 @@ export function QuestionCard({ problem, index, total, combo, timeLimit = 30, onS
       )}
 
       {problem.type === 'short_answer' && (
-        <input
-          className={`answer-input ${submitted ? (result?.correct ? 'ok' : 'no') : ''}`}
-          placeholder="정답 입력 (예: 17/20, 1과 3/10)"
-          value={responses[0] ?? ''}
-          disabled={submitted}
-          onChange={(e) => setResponses([e.target.value])}
-          onKeyDown={(e) => e.key === 'Enter' && canSubmit && handleSubmit()}
-        />
+        <>
+          <input
+            className={`answer-input ${submitted ? (result?.correct ? 'ok' : 'no') : ''}`}
+            placeholder={
+              problem.numericAnswer ? '분수로 입력 (예: 17/20, 1과 3/10)' : '정답을 입력하세요'
+            }
+            value={responses[0] ?? ''}
+            disabled={submitted}
+            inputMode={problem.numericAnswer ? 'text' : undefined}
+            autoComplete="off"
+            onChange={(e) => setResponses([e.target.value])}
+            onKeyDown={(e) => e.key === 'Enter' && canSubmit && handleSubmit()}
+          />
+          {problem.numericAnswer && !submitted && (
+            <p className="input-guide">
+              ✏️ 분수는 <b>분자/분모</b>, 대분수는 <b>1과 3/10</b> 처럼 입력해요
+            </p>
+          )}
+        </>
       )}
 
       {submitted && result && (
         <div className={`feedback ${result.correct ? 'good' : 'bad'}`}>
-          {result.correct ? '정답! 🎉' : '아쉬워요 😢'}
-          {!result.correct && problem.explanation && (
-            <div className="explain">💡 {problem.explanation}</div>
+          <div className="feedback-head">{result.correct ? '정답! 🎉' : '아쉬워요 😢'}</div>
+          {!result.correct && (
+            <div className="correct-answer">
+              정답: <b>{correctAnswerText(problem)}</b>
+            </div>
           )}
+          {result.note && <div className="note-tip">💡 {result.note}</div>}
+          {problem.explanation && <div className="explain">📘 풀이: {problem.explanation}</div>}
         </div>
       )}
 
-      {!submitted && (
+      {!submitted ? (
         <button className="btn primary submit" disabled={!canSubmit} onClick={handleSubmit}>
           제출
+        </button>
+      ) : (
+        <button className="btn primary submit" onClick={goNext}>
+          {index + 1 >= total ? '결과 보기 ▶' : '다음 ▶'}
         </button>
       )}
     </div>

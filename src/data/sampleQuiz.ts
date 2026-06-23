@@ -152,7 +152,7 @@ export const sampleQuiz: Quiz = {
       difficulty: 2,
       points: 15,
       numericAnswer: true,
-      prompt: '계산해 보세요.  2와 1/6 + 1와 11/12 = ?',
+      prompt: '계산해 보세요.  2와 1/6 + 1과 11/12 = ?',
       answers: ['4과 1/12', '49/12'],
       explanation: '2와 2/12 + 1과 11/12 = 3과 13/12 = 4과 1/12',
     },
@@ -181,7 +181,7 @@ export const sampleQuiz: Quiz = {
       points: 20,
       numericAnswer: true,
       prompt:
-        '어머니께서 귤 2와 2/5 kg과 바나나 1와 2/3 kg을 사 오셨습니다. 사 오신 과일은 모두 몇 kg인가요?',
+        '어머니께서 귤 2와 2/5 kg과 바나나 1과 2/3 kg을 사 오셨습니다. 사 오신 과일은 모두 몇 kg인가요?',
       answers: ['4과 1/15', '61/15'],
       explanation: '2와 6/15 + 1과 10/15 = 3과 16/15 = 4과 1/15',
     },
