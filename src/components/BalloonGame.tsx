@@ -9,9 +9,16 @@ interface Props {
   onExit?: () => void
 }
 
-const HOLES = 9 // 3×3
-const PER_SEC = 20 // 문제당 제한 시간(넉넉하게)
-const ROLL_MS = 2400 // 두더지가 다시 솟는 주기(천천히 — 읽고 칠 시간)
+interface Balloon {
+  choiceIdx: number
+  correct: boolean
+  x: number // 0~100 (%)
+  y: number // 0~100 (%) — 100 바닥, 0 천장
+  speed: number // %/초 (위로)
+  hue: number
+}
+
+const PER_SEC = 16 // 문제당 제한 시간(넉넉)
 
 function shuffle<T>(arr: T[]): T[] {
   const a = arr.slice()
@@ -22,26 +29,23 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-interface Mole {
-  hole: number
-  choiceIdx: number
-  correct: boolean
-}
-
-// 두더지가 보기를 들고 솟아오른다. 정답을 든 두더지를 빠르게 친다.
-export function MoleGame({ problems, theme, onComplete, onExit }: Props) {
+// 보기를 단 풍선이 위로 둥실 떠오른다. 정답이 든 풍선을 펑! 터뜨린다.
+export function BalloonGame({ problems, theme, onComplete, onExit }: Props) {
   const mcs = useMemo(
     () => problems.filter((p): p is MultipleChoiceProblem => p.type === 'multiple_choice'),
     [problems],
   )
   const [qi, setQi] = useState(0)
-  const [moles, setMoles] = useState<Mole[]>([])
+  const [balloons, setBalloons] = useState<Balloon[]>([])
   const [time, setTime] = useState(PER_SEC)
   const [results, setResults] = useState<GameResult[]>([])
   const [flash, setFlash] = useState<null | { correct: boolean; answer: string }>(null)
 
+  const balloonsRef = useRef<Balloon[]>([])
   const resultsRef = useRef<GameResult[]>([])
   const lockRef = useRef(false)
+  const rafRef = useRef<number | null>(null)
+  const lastRef = useRef(0)
   const problem = mcs[qi]
 
   useEffect(() => {
@@ -49,31 +53,55 @@ export function MoleGame({ problems, theme, onComplete, onExit }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 두더지 솟기 (주기적으로 보기를 무작위 구멍에 배치, 정답은 항상 포함)
+  // 문제마다 풍선 생성
+  useEffect(() => {
+    if (!problem) return
+    lockRef.current = false
+    const lanes = shuffle(problem.choices.map((_, i) => i))
+    const n = problem.choices.length
+    const next: Balloon[] = lanes.map((choiceIdx, lane) => ({
+      choiceIdx,
+      correct: choiceIdx === problem.answer,
+      x: 10 + (lane + 0.5) * (80 / n) + (Math.random() * 6 - 3),
+      y: 108 + lane * 26 + Math.random() * 14, // 아래에서 시차를 두고 떠오름
+      speed: 9 + Math.random() * 4,
+      hue: Math.floor(Math.random() * 360),
+    }))
+    balloonsRef.current = next
+    setBalloons(next)
+    setFlash(null)
+    setTime(PER_SEC)
+    lastRef.current = 0
+  }, [qi, problem])
+
+  // 떠오르는 애니메이션
   useEffect(() => {
     if (!problem || flash) return
-    lockRef.current = false
-
-    function roll() {
-      const holes = shuffle(Array.from({ length: HOLES }, (_, i) => i))
-      const idxs = shuffle(problem.choices.map((_, i) => i))
-      // 정답을 항상 포함하고, 그 외 보기에서 1~2개만 더 노출(헷갈리지 않게)
-      const others = idxs.filter((i) => i !== problem.answer)
-      const showCount = Math.min(others.length, 1 + Math.floor(Math.random() * 2))
-      const chosen = [problem.answer, ...others.slice(0, showCount)]
-      const next: Mole[] = chosen.map((choiceIdx, k) => ({
-        hole: holes[k],
-        choiceIdx,
-        correct: choiceIdx === problem.answer,
-      }))
-      setMoles(shuffle(next))
+    function tick(ts: number) {
+      if (!lastRef.current) lastRef.current = ts
+      const dt = Math.min(0.05, (ts - lastRef.current) / 1000)
+      lastRef.current = ts
+      const moved = balloonsRef.current.map((b) => {
+        let y = b.y - b.speed * dt
+        let x = b.x
+        let speed = b.speed
+        if (y < -14) {
+          // 천장 위로 사라지면 아래에서 다시 떠오름
+          y = 108 + Math.random() * 20
+          x = 10 + Math.random() * 80
+          speed = 9 + Math.random() * 4
+        }
+        return { ...b, x, y, speed }
+      })
+      balloonsRef.current = moved
+      setBalloons(moved)
+      rafRef.current = requestAnimationFrame(tick)
     }
-
-    roll()
-    setTime(PER_SEC)
-    const rollT = window.setInterval(roll, ROLL_MS)
-    return () => window.clearInterval(rollT)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    rafRef.current = requestAnimationFrame(tick)
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      lastRef.current = 0
+    }
   }, [qi, problem, flash])
 
   // 제한 시간
@@ -104,17 +132,16 @@ export function MoleGame({ problems, theme, onComplete, onExit }: Props) {
     }, 950)
   }
 
-  function whack(m: Mole) {
+  function pop(b: Balloon) {
     if (lockRef.current) return
-    resolve(m.correct)
+    resolve(b.correct)
   }
 
   if (!problem) return null
   const score = results.filter((r) => r.correct).length
-  const moleAt = (hole: number) => moles.find((m) => m.hole === hole)
 
   return (
-    <div className={`card mole-game ${theme ?? ''}`}>
+    <div className={`card balloon-game ${theme ?? ''}`}>
       <div className="q-meta">
         {onExit && (
           <button className="q-exit" onClick={onExit}>
@@ -129,26 +156,21 @@ export function MoleGame({ problems, theme, onComplete, onExit }: Props) {
       </div>
 
       <p className="rain-question">{problem.prompt}</p>
-      <p className="rain-hint">정답을 든 두더지를 콩! 쳐요 🔨</p>
+      <p className="rain-hint">정답이 든 풍선을 펑! 터뜨려요 🎈</p>
 
-      <div className="mole-grid">
-        {Array.from({ length: HOLES }, (_, h) => {
-          const m = moleAt(h)
-          return (
-            <div key={h} className="mole-hole">
-              {m && (
-                <button
-                  className={`mole ${flash ? (m.correct ? 'reveal-ok' : 'reveal-no') : ''}`}
-                  onClick={() => whack(m)}
-                  disabled={!!flash}
-                >
-                  <span className="mole-face">🦔</span>
-                  <span className="mole-label">{m.choiceIdx + 1}. {problem.choices[m.choiceIdx]}</span>
-                </button>
-              )}
-            </div>
-          )
-        })}
+      <div className="balloon-field">
+        {balloons.map((b) => (
+          <button
+            key={b.choiceIdx}
+            className={`balloon ${flash ? (b.correct ? 'reveal-ok' : 'reveal-no') : ''}`}
+            style={{ left: `${b.x}%`, top: `${b.y}%`, ['--hue' as string]: b.hue }}
+            onClick={() => pop(b)}
+            disabled={!!flash}
+          >
+            <span className="balloon-label">{b.choiceIdx + 1}. {problem.choices[b.choiceIdx]}</span>
+            <span className="balloon-string" />
+          </button>
+        ))}
       </div>
 
       {flash && (

@@ -1935,6 +1935,97 @@ body {
   color: var(--bad);
   border: 1px solid var(--bad);
 }
+.drop-icon {
+  font-size: 30px;
+  padding: 0;
+  border: none;
+  background: none;
+  box-shadow: none;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+}
+.drop-icon:active {
+  transform: translate(-50%, -50%) scale(1.2);
+}
+.rain-clear {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 18px;
+  font-weight: 800;
+  color: #eaf4ff;
+}
+.rain-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(6, 9, 24, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  overflow-y: auto;
+}
+.rain-overlay > .card {
+  width: 100%;
+  max-width: 460px;
+}
+
+/* ── 풍선 터뜨리기 ─────────────────────────────────────────────── */
+.balloon-game {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.balloon-field {
+  position: relative;
+  height: 54vh;
+  min-height: 320px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #bfe6ff 0%, #d9f2ff 60%, #eafaff 100%);
+  border: 1px solid var(--line);
+}
+.balloon {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  max-width: 44%;
+  padding: 14px 16px;
+  border: none;
+  border-radius: 50% 50% 48% 48%;
+  background: radial-gradient(circle at 35% 30%, hsl(var(--hue, 0), 90%, 80%), hsl(var(--hue, 0), 75%, 55%));
+  color: #1a1a2e;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: inset -4px -6px 10px rgba(0, 0, 0, 0.18), 0 3px 8px rgba(0, 0, 0, 0.2);
+  will-change: top, left;
+}
+.balloon-label {
+  display: block;
+  line-height: 1.2;
+  word-break: keep-all;
+}
+.balloon-string {
+  position: absolute;
+  left: 50%;
+  bottom: -14px;
+  width: 2px;
+  height: 16px;
+  background: rgba(0, 0, 0, 0.3);
+  transform: translateX(-50%);
+}
+.balloon:active {
+  transform: translate(-50%, -50%) scale(0.9);
+}
+.balloon.reveal-ok {
+  outline: 3px solid var(--good);
+}
+.balloon.reveal-no {
+  opacity: 0.45;
+}
 
 /* ── 두더지 잡기 ───────────────────────────────────────────────── */
 .mole-grid {

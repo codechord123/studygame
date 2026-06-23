@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Problem, MultipleChoiceProblem } from '../types/problem'
+import type { Problem } from '../types/problem'
 import type { GameResult } from './SpeedOxGame'
+import { QuestionCard } from './QuestionCard'
 
 interface Props {
   problems: Problem[]
@@ -10,136 +11,90 @@ interface Props {
 }
 
 interface Drop {
-  id: number
-  label: string
-  choiceIdx: number
-  correct: boolean
+  pid: string
   x: number // 0~100 (%)
-  y: number // 0~100 (%) — 100 이면 바닥
+  y: number // 0~100 (%)
   speed: number // %/초
 }
 
-const START_LIVES = 3
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = arr.slice()
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
-
-// 빗방울을 만들어 화면에 떨어뜨린다. 정답 빗방울을 받고, 오답(산성비)은 피한다.
+// 빗방울이 떨어진다. 빗방울을 클릭하면 그 안에 든 문제가 나오고, 풀면 빗방울이 사라진다.
 export function AcidRainGame({ problems, theme, onComplete, onExit }: Props) {
-  const mcs = useMemo(
-    () => problems.filter((p): p is MultipleChoiceProblem => p.type === 'multiple_choice'),
-    [problems],
+  const all = useMemo(() => problems, [problems])
+  const [drops, setDrops] = useState<Drop[]>(() =>
+    all.map((p, i) => ({
+      pid: p.id,
+      x: 8 + (i % 5) * 19 + (Math.random() * 8 - 4),
+      y: -10 - (i % 5) * 18 - Math.random() * 30,
+      speed: 11 + Math.random() * 6,
+    })),
   )
-  const [qi, setQi] = useState(0)
-  const [drops, setDrops] = useState<Drop[]>([])
-  const [lives, setLives] = useState(START_LIVES)
+  const [activePid, setActivePid] = useState<string | null>(null)
   const [results, setResults] = useState<GameResult[]>([])
-  const [flash, setFlash] = useState<null | { correct: boolean; answer: string }>(null)
+  const [splash, setSplash] = useState<null | { correct: boolean }>(null)
 
+  const dropsRef = useRef<Drop[]>(drops)
   const resultsRef = useRef<GameResult[]>([])
-  const livesRef = useRef(START_LIVES)
-  const lockRef = useRef(false)
   const rafRef = useRef<number | null>(null)
-  const lastRef = useRef<number>(0)
-  const dropsRef = useRef<Drop[]>([])
+  const lastRef = useRef(0)
 
-  const problem = mcs[qi]
-
-  // 문제가 없으면 즉시 종료
   useEffect(() => {
-    if (mcs.length === 0) onComplete([])
+    if (all.length === 0) onComplete([])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 문제마다 빗방울 생성
+  // 낙하 애니메이션 (문제 풀이 중에는 멈춤)
   useEffect(() => {
-    if (!problem) return
-    lockRef.current = false
-    const lanes = shuffle(problem.choices.map((_, i) => i))
-    const n = problem.choices.length
-    const next: Drop[] = lanes.map((choiceIdx, lane) => ({
-      id: qi * 100 + choiceIdx,
-      label: problem.choices[choiceIdx],
-      choiceIdx,
-      correct: choiceIdx === problem.answer,
-      x: 8 + (lane + 0.5) * (84 / n) + (Math.random() * 8 - 4),
-      y: -10 - lane * 22 - Math.random() * 10, // 위에서 시차를 두고 등장
-      speed: 13 + Math.random() * 5, // %/초 (≈ 7~9초 낙하)
-    }))
-    dropsRef.current = next
-    setDrops(next)
-    setFlash(null)
+    if (activePid) return
     lastRef.current = 0
-  }, [qi, problem])
-
-  // 애니메이션 루프
-  useEffect(() => {
-    if (!problem || flash) return
     function tick(ts: number) {
       if (!lastRef.current) lastRef.current = ts
       const dt = Math.min(0.05, (ts - lastRef.current) / 1000)
       lastRef.current = ts
-      let correctPassed = false
       const moved = dropsRef.current.map((d) => {
-        const y = d.y + d.speed * dt
-        if (y >= 100 && d.correct) correctPassed = true
-        return { ...d, y }
+        let y = d.y + d.speed * dt
+        let x = d.x
+        let speed = d.speed
+        // 바닥에 닿으면 위로 재활용(문제는 사라지지 않음)
+        if (y > 108) {
+          y = -8 - Math.random() * 14
+          x = 8 + Math.random() * 84
+          speed = 11 + Math.random() * 6
+        }
+        return { ...d, x, y, speed }
       })
-      // 화면 밖으로 나간 오답 방울은 제거(잘 피함)
-      dropsRef.current = moved.filter((d) => d.y < 112)
-      setDrops(dropsRef.current)
-      // 정답 빗방울이 바닥에 닿으면 놓침 → 오답 처리
-      if (correctPassed && !lockRef.current) {
-        resolve(false, '놓쳤어요')
-        return
-      }
+      dropsRef.current = moved
+      setDrops(moved)
       rafRef.current = requestAnimationFrame(tick)
     }
     rafRef.current = requestAnimationFrame(tick)
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
-      lastRef.current = 0
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [qi, problem, flash])
+  }, [activePid])
 
-  function resolve(correct: boolean, _why?: string) {
-    if (lockRef.current || !problem) return
-    lockRef.current = true
-    const nextResults = [...resultsRef.current, { id: problem.id, correct }]
-    resultsRef.current = nextResults
-    setResults(nextResults)
-    if (!correct) {
-      const nl = livesRef.current - 1
-      livesRef.current = nl
-      setLives(nl)
-    }
-    setFlash({ correct, answer: problem.choices[problem.answer] })
-    window.setTimeout(() => {
-      if (livesRef.current <= 0) {
-        // 생명 소진 → 남은 문제는 오답으로 채우고 종료
-        const filled = [...nextResults]
-        for (let k = qi + 1; k < mcs.length; k++) filled.push({ id: mcs[k].id, correct: false })
-        onComplete(filled)
-        return
-      }
-      if (qi + 1 >= mcs.length) onComplete(nextResults)
-      else setQi(qi + 1)
-    }, 950)
+  function open(pid: string) {
+    if (activePid) return
+    setActivePid(pid)
   }
 
-  function tap(d: Drop) {
-    if (lockRef.current) return
-    resolve(d.correct)
+  function answer(correct: boolean) {
+    const pid = activePid!
+    const next = [...resultsRef.current, { id: pid, correct }]
+    resultsRef.current = next
+    setResults(next)
+    // 푼 빗방울 제거
+    dropsRef.current = dropsRef.current.filter((d) => d.pid !== pid)
+    setDrops(dropsRef.current)
+    setActivePid(null)
+    setSplash({ correct })
+    window.setTimeout(() => setSplash(null), 700)
+    if (dropsRef.current.length === 0) {
+      window.setTimeout(() => onComplete(next), 300)
+    }
   }
 
-  if (!problem) return null
+  const activeProblem = activePid ? all.find((p) => p.id === activePid) ?? null : null
+  const solved = results.length
   const score = results.filter((r) => r.correct).length
 
   return (
@@ -151,34 +106,47 @@ export function AcidRainGame({ problems, theme, onComplete, onExit }: Props) {
           </button>
         )}
         <span className="q-progress">
-          {qi + 1} / {mcs.length}
+          {solved} / {all.length}
         </span>
         <span className="ox-score">⭐ {score}</span>
-        <span className="rain-lives">{'❤️'.repeat(Math.max(0, lives))}</span>
       </div>
 
-      <p className="rain-question">{problem.prompt}</p>
-      <p className="rain-hint">정답 빗방울을 콕! 눌러 받아요 💧</p>
+      <p className="rain-hint">떨어지는 빗방울을 콕! 누르면 문제가 나와요 💧</p>
 
       <div className="rain-field">
         {drops.map((d) => (
           <button
-            key={d.id}
-            className={`raindrop ${flash ? (d.correct ? 'reveal-ok' : 'reveal-no') : ''}`}
+            key={d.pid}
+            className="raindrop drop-icon"
             style={{ left: `${d.x}%`, top: `${d.y}%` }}
-            onClick={() => tap(d)}
-            disabled={!!flash}
+            onClick={() => open(d.pid)}
           >
-            {d.label}
+            💧
           </button>
         ))}
         <div className="rain-ground" />
-        {flash && (
-          <div className={`rain-flash ${flash.correct ? 'good' : 'bad'}`}>
-            {flash.correct ? '정답! 🎉' : `아쉬워요 — 정답: ${flash.answer}`}
+        {splash && (
+          <div className={`rain-flash ${splash.correct ? 'good' : 'bad'}`}>
+            {splash.correct ? '정답! 🎉' : '아쉬워요 😢'}
           </div>
         )}
+        {drops.length === 0 && !activeProblem && <div className="rain-clear">모든 빗방울을 풀었어요! 🌈</div>}
       </div>
+
+      {activeProblem && (
+        <div className="rain-overlay">
+          <QuestionCard
+            key={activeProblem.id}
+            problem={activeProblem}
+            index={solved}
+            total={all.length}
+            combo={0}
+            mode="study"
+            theme={theme}
+            onSubmit={(r) => answer(r.correct)}
+          />
+        </div>
+      )}
     </div>
   )
 }

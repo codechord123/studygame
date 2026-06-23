@@ -4,6 +4,7 @@ import { SpeedOxGame, type GameResult } from './components/SpeedOxGame'
 import { MemoryGame } from './components/MemoryGame'
 import { AcidRainGame } from './components/AcidRainGame'
 import { MoleGame } from './components/MoleGame'
+import { BalloonGame } from './components/BalloonGame'
 import { TownMap, type FacilityScreen } from './components/TownMap'
 import { AiMaker } from './components/AiMaker'
 import { ProblemCreate } from './components/ProblemCreate'
@@ -681,6 +682,16 @@ export default function App() {
         if (kind === 'mole') {
           return (
             <MoleGame
+              problems={session.problems}
+              theme={theme}
+              onComplete={(res) => finishFromResults(session.problems, res, villager, session.miniGameId)}
+              onExit={exitQuiz}
+            />
+          )
+        }
+        if (kind === 'balloon') {
+          return (
+            <BalloonGame
               problems={session.problems}
               theme={theme}
               onComplete={(res) => finishFromResults(session.problems, res, villager, session.miniGameId)}
