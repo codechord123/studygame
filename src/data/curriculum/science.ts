@@ -1,0 +1,63 @@
+import type { Unit } from './types'
+
+// 과학 단원 모음. 새 단원은 아래 배열에 객체를 추가하세요.
+export const scienceUnits: Unit[] = [
+  {
+    id: 'sc-basic',
+    subject: '과학',
+    grade: '초',
+    unit: '물질·생물·지구',
+    problems: [
+      {
+        id: 'sc-1',
+        subject: '과학',
+        grade: '초',
+        unit: '물질·생물·지구',
+        type: 'multiple_choice',
+        difficulty: 1,
+        points: 10,
+        prompt: '물이 얼면 무엇이 될까요?',
+        choices: ['수증기', '얼음', '소금', '구름'],
+        answer: 1,
+        explanation: '물(액체)이 얼면 얼음(고체)이 됩니다.',
+      },
+      {
+        id: 'sc-2',
+        subject: '과학',
+        grade: '초',
+        unit: '물질·생물·지구',
+        type: 'short_answer',
+        difficulty: 2,
+        points: 15,
+        prompt: '식물이 빛을 받아 스스로 양분을 만드는 일을 무엇이라 할까요?',
+        answers: ['광합성'],
+        explanation: '식물은 잎에서 빛을 이용해 양분을 만드는 광합성을 합니다.',
+      },
+      {
+        id: 'sc-3',
+        subject: '과학',
+        grade: '초',
+        unit: '물질·생물·지구',
+        type: 'ox',
+        difficulty: 1,
+        points: 10,
+        prompt: '자석의 같은 극끼리는 서로 밀어냅니다.',
+        answer: true,
+        explanation: '같은 극은 밀어내고 다른 극은 끌어당깁니다.',
+      },
+      {
+        id: 'sc-4',
+        subject: '과학',
+        grade: '초',
+        unit: '물질·생물·지구',
+        type: 'multiple_choice',
+        difficulty: 1,
+        points: 10,
+        prompt: '낮과 밤이 생기는 까닭은 무엇일까요?',
+        choices: ['지구가 스스로 도는 자전', '달이 빛나서', '구름이 움직여서', '바람이 불어서'],
+        answer: 0,
+        explanation: '지구가 하루에 한 바퀴 자전하기 때문입니다.',
+      },
+    ],
+  },
+]

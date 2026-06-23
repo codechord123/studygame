@@ -1,0 +1,62 @@
+import type { Unit } from './types'
+
+// 국어 단원 모음. 새 단원은 아래 배열에 객체를 추가하세요.
+export const koreanUnits: Unit[] = [
+  {
+    id: 'ko-basic',
+    subject: '국어',
+    grade: '초',
+    unit: '낱말과 맞춤법',
+    problems: [
+      {
+        id: 'ko-1',
+        subject: '국어',
+        grade: '초',
+        unit: '낱말과 맞춤법',
+        type: 'multiple_choice',
+        difficulty: 1,
+        points: 10,
+        prompt: "'설레다'의 뜻으로 알맞은 것은?",
+        choices: ['마음이 들떠 두근거리다', '몹시 화가 나다', '매우 졸리다', '배가 고프다'],
+        answer: 0,
+        explanation: '설레다 = 마음이 들떠서 두근거리다.',
+      },
+      {
+        id: 'ko-2',
+        subject: '국어',
+        grade: '초',
+        unit: '낱말과 맞춤법',
+        type: 'short_answer',
+        difficulty: 2,
+        points: 15,
+        prompt: "다음을 바르게 고쳐 쓰세요.  '되요' → ?",
+        answers: ['돼요'],
+        explanation: "'되어요'의 준말은 '돼요'.",
+      },
+      {
+        id: 'ko-3',
+        subject: '국어',
+        grade: '초',
+        unit: '낱말과 맞춤법',
+        type: 'ox',
+        difficulty: 1,
+        points: 10,
+        prompt: '묻는 문장의 끝에는 물음표(?)를 씁니다.',
+        answer: true,
+        explanation: '의문문의 끝에는 물음표를 씁니다.',
+      },
+      {
+        id: 'ko-4',
+        subject: '국어',
+        grade: '초',
+        unit: '낱말과 맞춤법',
+        type: 'short_answer',
+        difficulty: 1,
+        points: 10,
+        prompt: "'무겁다'의 반대말은?",
+        answers: ['가볍다'],
+        explanation: '무겁다 ↔ 가볍다',
+      },
+    ],
+  },
+]

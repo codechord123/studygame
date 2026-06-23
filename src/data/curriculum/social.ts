@@ -1,0 +1,63 @@
+import type { Unit } from './types'
+
+// 사회 단원 모음. 새 단원은 아래 배열에 객체를 추가하세요.
+export const socialUnits: Unit[] = [
+  {
+    id: 'so-basic',
+    subject: '사회',
+    grade: '초',
+    unit: '우리나라와 생활',
+    problems: [
+      {
+        id: 'so-1',
+        subject: '사회',
+        grade: '초',
+        unit: '우리나라와 생활',
+        type: 'multiple_choice',
+        difficulty: 1,
+        points: 10,
+        prompt: '우리나라의 수도는 어디일까요?',
+        choices: ['부산', '서울', '대전', '광주'],
+        answer: 1,
+        explanation: '대한민국의 수도는 서울입니다.',
+      },
+      {
+        id: 'so-2',
+        subject: '사회',
+        grade: '초',
+        unit: '우리나라와 생활',
+        type: 'short_answer',
+        difficulty: 2,
+        points: 15,
+        prompt: '해가 떠오르는 방향은 어느 쪽일까요?',
+        answers: ['동쪽', '동'],
+        explanation: '해는 동쪽에서 떠서 서쪽으로 집니다.',
+      },
+      {
+        id: 'so-3',
+        subject: '사회',
+        grade: '초',
+        unit: '우리나라와 생활',
+        type: 'multiple_choice',
+        difficulty: 1,
+        points: 10,
+        prompt: '불을 끄고 사람을 구조하는 곳은 어디일까요?',
+        choices: ['우체국', '소방서', '도서관', '은행'],
+        answer: 1,
+        explanation: '소방서는 화재 진압과 구조·구급을 담당합니다.',
+      },
+      {
+        id: 'so-4',
+        subject: '사회',
+        grade: '초',
+        unit: '우리나라와 생활',
+        type: 'ox',
+        difficulty: 1,
+        points: 10,
+        prompt: '우리나라는 봄·여름·가을·겨울 네 계절이 있습니다.',
+        answer: true,
+        explanation: '우리나라는 사계절이 뚜렷합니다.',
+      },
+    ],
+  },
+]

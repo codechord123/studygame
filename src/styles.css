@@ -1106,16 +1106,29 @@ body {
   opacity: 0.95;
   z-index: 1;
 }
+/* 과목 테마: 강조색 변수(공용) + 과목 카드 배경(한정) */
 .theme-math {
-  background: linear-gradient(145deg, #5b6cf0, #3b45c4);
+  --theme: #5b6cf0;
 }
 .theme-korean {
-  background: linear-gradient(145deg, #ff7eb3, #e8537f);
+  --theme: #e8537f;
 }
 .theme-social {
-  background: linear-gradient(145deg, #ffb347, #f08a24);
+  --theme: #f08a24;
 }
 .theme-science {
+  --theme: #17977f;
+}
+.subject-card.theme-math {
+  background: linear-gradient(145deg, #5b6cf0, #3b45c4);
+}
+.subject-card.theme-korean {
+  background: linear-gradient(145deg, #ff7eb3, #e8537f);
+}
+.subject-card.theme-social {
+  background: linear-gradient(145deg, #ffb347, #f08a24);
+}
+.subject-card.theme-science {
   background: linear-gradient(145deg, #2bc4a8, #17977f);
 }
 
@@ -1217,6 +1230,79 @@ body {
   border-radius: 50%;
   font-size: 14px;
   cursor: pointer;
+}
+
+/* 단원 선택 */
+.units-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.units-emoji {
+  font-size: 34px;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: var(--theme, var(--primary));
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+.title.sm {
+  font-size: 19px;
+  text-align: left;
+  margin: 0;
+}
+.unit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.unit-card2 {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--theme, var(--primary));
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.unit-card2.done {
+  border-color: var(--good);
+  border-left-color: var(--good);
+}
+.unit-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.unit-name2 {
+  font-size: 16px;
+}
+.unit-sub2 {
+  font-size: 12px;
+  color: var(--muted);
+}
+.unit-actions {
+  display: flex;
+  gap: 8px;
+}
+.unit-actions .btn {
+  flex: 1;
+  padding: 11px;
+}
+
+/* 퀴즈 과목 테마 강조 (시각 통일) */
+.question-card {
+  border-top: 4px solid var(--theme, var(--primary2));
+}
+.question-card .timer-bar-fill {
+  background: var(--theme, linear-gradient(90deg, var(--good), var(--accent)));
+}
+.question-card .q-progress {
+  color: var(--theme, var(--muted));
 }
 
 /* HUD 메뉴 버튼 */

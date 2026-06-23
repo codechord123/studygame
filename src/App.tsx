@@ -46,11 +46,24 @@ import {
 import { orderByMastery, updateEntry, type MasteryMap } from './game/mastery'
 import { subjectStats, unitCards, trophies, completedUnitKeys, UNIT_REWARD } from './game/collection'
 import { VILLAGER_PROBLEMS } from './data/villagerQuizzes'
+import { unitsFor, type Unit } from './data/curriculum'
 import type { Problem } from './types/problem'
+
+// 과목별 테마 클래스 (광장→대화창→단원→퀴즈 시각 통일)
+const SUBJECT_THEME: Record<string, string> = {
+  수학: 'theme-math',
+  국어: 'theme-korean',
+  사회: 'theme-social',
+  과학: 'theme-science',
+}
+function themeOf(subject?: string): string {
+  return (subject && SUBJECT_THEME[subject]) || 'theme-math'
+}
 
 type Screen =
   | 'town'
   | 'walk'
+  | 'units'
   | 'quiz'
   | 'result'
   | 'wrong'
@@ -111,6 +124,7 @@ export default function App() {
   const [classmates, setClassmates] = useState<Classmate[]>(CLASSMATES)
   const [gameSession, setGameSession] = useState<SessionState | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [unitVillager, setUnitVillager] = useState<Villager | null>(null)
   const bridgeRef = useRef<{
     ui: (d: { type: FacilityScreen }) => void
     villager: (d: { id: string }) => void
@@ -313,6 +327,10 @@ export default function App() {
     const problems = VILLAGER_PROBLEMS[v.id]
     if (problems && problems.length) startQuiz(problems, mode, v)
   }
+  function openUnits(v: Villager) {
+    setUnitVillager(v)
+    setScreen('units')
+  }
   function makeForVillager(v: Villager) {
     setAiVillager(v)
     setScreen('ai')
@@ -456,9 +474,19 @@ export default function App() {
       {screen === 'town' && (
         <Plaza
           profile={profile}
-          onStudy={talkAndStudy}
+          onUnits={openUnits}
           onMake={makeForVillager}
           onGo={go}
+        />
+      )}
+
+      {screen === 'units' && unitVillager && (
+        <UnitSelect
+          villager={unitVillager}
+          profile={profile}
+          onStart={(problems, mode) => startQuiz(problems, mode, unitVillager)}
+          onMake={() => makeForVillager(unitVillager)}
+          onBack={() => setScreen('town')}
         />
       )}
 
@@ -487,6 +515,7 @@ export default function App() {
           total={session.problems.length}
           combo={session.combo}
           mode={session.mode}
+          theme={themeOf(session.problems[session.i].subject)}
           onSubmit={handleSubmit}
           onExit={exitQuiz}
         />
@@ -522,6 +551,7 @@ export default function App() {
                 total={gameSession.problems.length}
                 combo={gameSession.combo}
                 mode={gameSession.mode}
+                theme={themeOf(gameSession.problems[gameSession.i].subject)}
                 onSubmit={handleGameSubmit}
                 onExit={() => setGameSession(null)}
               />
@@ -690,16 +720,9 @@ function Hud(props: {
 }
 
 // ── 마을 광장 (기본 화면) : 과목 NPC 중심의 깔끔한 학습 허브 ──────
-const SUBJECT_THEME: Record<string, string> = {
-  수학: 'theme-math',
-  국어: 'theme-korean',
-  사회: 'theme-social',
-  과학: 'theme-science',
-}
-
 function Plaza(props: {
   profile: PlayerProfile
-  onStudy: (v: Villager, mode: PlayMode) => void
+  onUnits: (v: Villager) => void
   onMake: (v: Villager) => void
   onGo: (s: Screen) => void
 }) {
@@ -775,20 +798,10 @@ function Plaza(props: {
                 onClick={() => {
                   const v = active
                   setActive(null)
-                  props.onStudy(v, 'study')
+                  props.onUnits(v)
                 }}
               >
-                📖 차근차근 학습
-              </button>
-              <button
-                className="btn challenge big"
-                onClick={() => {
-                  const v = active
-                  setActive(null)
-                  props.onStudy(v, 'challenge')
-                }}
-              >
-                ⚡ 도전 (타이머)
+                📚 단원 고르기
               </button>
               <button
                 className="btn ghost big"
@@ -807,6 +820,83 @@ function Plaza(props: {
           </div>
         </div>
       )}
+    </main>
+  )
+}
+
+// ── 단원 선택 ─────────────────────────────────────────────────────
+function UnitSelect(props: {
+  villager: Villager
+  profile: PlayerProfile
+  onStart: (problems: Problem[], mode: PlayMode) => void
+  onMake: () => void
+  onBack: () => void
+}) {
+  const { villager, profile } = props
+  const units = unitsFor(villager.id)
+  const theme = themeOf(villager.subject)
+
+  function progress(u: Unit): { mastered: number; total: number } {
+    let mastered = 0
+    for (const p of u.problems) {
+      const m = profile.mastery[p.id]
+      if (m && m.streak >= 3) mastered += 1
+    }
+    return { mastered, total: u.problems.length }
+  }
+
+  return (
+    <main className={`screen units ${theme}`}>
+      <div className="units-head">
+        <span className="units-emoji">{villager.emoji}</span>
+        <div>
+          <h1 className="title sm">{villager.subject} · {villager.name}</h1>
+          <p className="subtitle">공부할 단원을 골라요</p>
+        </div>
+      </div>
+
+      {units.length === 0 ? (
+        <p className="empty">아직 단원이 없어요. 사진으로 문제를 추가해 보세요!</p>
+      ) : (
+        <div className="unit-list">
+          {units.map((u) => {
+            const { mastered, total } = progress(u)
+            const pct = total ? Math.round((mastered / total) * 100) : 0
+            const done = total > 0 && mastered === total
+            return (
+              <div key={u.id} className={`unit-card2 ${done ? 'done' : ''}`}>
+                <div className="unit-top">
+                  <div className="unit-titles">
+                    <b className="unit-name2">{u.unit}</b>
+                    <span className="unit-sub2">
+                      {u.grade ? u.grade + ' · ' : ''}
+                      {total}문제 · 익힘 {mastered}/{total} {done ? '✅' : ''}
+                    </span>
+                  </div>
+                </div>
+                <div className="mission-bar">
+                  <div className="mission-bar-fill" style={{ width: `${pct}%` }} />
+                </div>
+                <div className="unit-actions">
+                  <button className="btn primary" onClick={() => props.onStart(u.problems, 'study')}>
+                    📖 학습
+                  </button>
+                  <button className="btn challenge" onClick={() => props.onStart(u.problems, 'challenge')}>
+                    ⚡ 도전
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      <button className="btn accent big" onClick={props.onMake}>
+        🤖 사진으로 단원 추가
+      </button>
+      <button className="btn ghost big" onClick={props.onBack}>
+        광장으로
+      </button>
     </main>
   )
 }

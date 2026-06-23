@@ -166,6 +166,42 @@ firebase deploy        # hosting + functions + firestore/storage rules
 
 ---
 
+## ✍️ 문제 추가하기 (과목 → 단원)
+
+문제는 **과목별 파일의 단원(Unit) 배열**에 넣습니다.
+
+```
+src/data/curriculum/
+  types.ts     # Unit 구조
+  math.ts      # 수학 단원들
+  korean.ts    # 국어 단원들
+  social.ts    # 사회 단원들
+  science.ts   # 과학 단원들
+  index.ts     # 광장 NPC ↔ 단원 매핑
+```
+
+각 파일의 `units` 배열에 단원 객체를 추가하면 광장의 해당 과목 NPC → **단원 선택**에
+자동으로 나타납니다.
+
+```ts
+{
+  id: 'math-5-1-multiple',          // 고유 id
+  subject: '수학',                   // 과목명(광장 NPC 매칭)
+  grade: '5-1',
+  unit: '약수와 배수',               // 단원 이름
+  problems: [
+    { id:'mm-1', subject:'수학', grade:'5-1', unit:'약수와 배수',
+      type:'multiple_choice', difficulty:1, points:10,
+      prompt:'12의 약수가 아닌 것은?', choices:['1','5','6','12'], answer:1,
+      explanation:'12의 약수: 1,2,3,4,6,12.' },
+  ],
+}
+```
+
+> 유형: `multiple_choice`(choices/answer) · `short_answer`(answers[]) · `ox`(answer:boolean)
+> · `fill_blank`(prompt에 `{{0}}` + blanks[][]). 분수 답이면 `numericAnswer:true`.
+> 사진이 있으면 NPC의 **🤖 사진으로 문제 추가**(문제공방)로 AI 변환도 가능합니다.
+
 ## 데이터 모델 예시
 
 ```ts
