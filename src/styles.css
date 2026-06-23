@@ -2252,6 +2252,27 @@ body {
   border-color: var(--bad);
 }
 
+/* 교사 콘솔 */
+.teacher-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.teacher-unit {
+  flex: 1;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn.sm {
+  flex: none;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
 /* 설정 · 백업 */
 .screen.settings {
   gap: 14px;

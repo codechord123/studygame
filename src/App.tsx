@@ -14,6 +14,7 @@ import { bridge } from './game/bridge'
 import { store, type WrongNote } from './lib/storage'
 import { playWin, isMuted, setMuted } from './lib/sfx'
 import { makeBackup, restoreBackup, inspectBackup } from './lib/backup'
+import { makeContentPack, importPack, inspectPack } from './lib/contentShare'
 import { firebaseEnabled } from './lib/firebase/config'
 import {
   type PlayerProfile,
@@ -113,6 +114,7 @@ type Screen =
   | 'dashboard'
   | 'settings'
   | 'manage'
+  | 'teacher'
 
 function hatOf(p: PlayerProfile): string | undefined {
   return equippedEmoji(p.equip, 'hat')
@@ -850,6 +852,15 @@ export default function App() {
 
       {screen === 'settings' && <Settings onBack={() => setScreen('home')} />}
 
+      {screen === 'teacher' && (
+        <Teacher
+          items={flattenCustom(customStore)}
+          store={customStore}
+          onImport={(s) => setCustomStore(s)}
+          onBack={() => setScreen('home')}
+        />
+      )}
+
       {screen === 'missions' && (
         <Missions profile={profile} onClaim={claimMission} onBack={() => setScreen('home')} />
       )}
@@ -1389,6 +1400,7 @@ function MainMenu(props: { onGo: (s: Screen) => void; onClose: () => void }) {
     { s: 'costume', emoji: '👕', label: '꾸미기' },
     { s: 'create', emoji: '✏️', label: '문제 만들기' },
     { s: 'manage', emoji: '🗂️', label: '내 문제 관리' },
+    { s: 'teacher', emoji: '👩‍🏫', label: '교사 콘솔' },
     { s: 'ai', emoji: '🤖', label: '사진 변환(AI)' },
     { s: 'dashboard', emoji: '📊', label: '학습 현황' },
     { s: 'dex', emoji: '📜', label: '학습 도감' },
@@ -1488,6 +1500,148 @@ function Manage(props: {
           )
         })
       )}
+
+      <button className="btn ghost big" onClick={props.onBack}>
+        돌아가기
+      </button>
+    </main>
+  )
+}
+
+// ── 교사 콘솔 (수업 꾸러미 배포·가져오기) ─────────────────────────
+function Teacher(props: {
+  items: CustomItem[]
+  store: CustomStore
+  onImport: (s: CustomStore) => void
+  onBack: () => void
+}) {
+  const [packCode, setPackCode] = useState('')
+  const [importText, setImportText] = useState('')
+  const [msg, setMsg] = useState<{ kind: 'good' | 'bad'; text: string } | null>(null)
+
+  const groups = useMemo(() => {
+    const map = new Map<string, { villagerId: string; unitName: string; items: CustomItem[] }>()
+    for (const it of props.items) {
+      const key = it.villagerId + '||' + it.unitName
+      if (!map.has(key)) map.set(key, { villagerId: it.villagerId, unitName: it.unitName, items: [] })
+      map.get(key)!.items.push(it)
+    }
+    return [...map.values()]
+  }, [props.items])
+
+  function exportGroup(g: { villagerId: string; unitName: string; items: CustomItem[] }) {
+    const v = villagerById(g.villagerId)
+    const code = makeContentPack(`${v?.subject ?? ''} · ${g.unitName}`, g.items, Date.now())
+    setPackCode(code)
+    setMsg({ kind: 'good', text: `‘${g.unitName}’ ${g.items.length}문제를 코드로 만들었어요. 학생에게 전달하세요.` })
+  }
+  function exportAll() {
+    if (!props.items.length) return
+    const code = makeContentPack('전체 수업 꾸러미', props.items, Date.now())
+    setPackCode(code)
+    setMsg({ kind: 'good', text: `전체 ${props.items.length}문제를 코드로 만들었어요.` })
+  }
+  async function copyPack() {
+    try {
+      await navigator.clipboard.writeText(packCode)
+      setMsg({ kind: 'good', text: '복사했어요! 학생들에게 코드를 보내세요.' })
+    } catch {
+      setMsg({ kind: 'bad', text: '복사가 안 돼요. 길게 눌러 직접 복사해 주세요.' })
+    }
+  }
+  function downloadPack() {
+    const blob = new Blob([packCode], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = '수업꾸러미.txt'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+  function doImport() {
+    const info = inspectPack(importText)
+    if (!info.ok) {
+      setMsg({ kind: 'bad', text: info.error ?? '코드를 확인해 주세요.' })
+      return
+    }
+    const r = importPack(importText, props.store)
+    if (r.ok && r.store) {
+      props.onImport(r.store)
+      setImportText('')
+      setMsg({
+        kind: 'good',
+        text: `‘${r.title}’ 가져왔어요! 새로 추가 ${r.added}개${r.skipped ? `, 이미 있던 ${r.skipped}개는 건너뜀` : ''}.`,
+      })
+    } else {
+      setMsg({ kind: 'bad', text: r.error ?? '가져오기에 실패했어요.' })
+    }
+  }
+
+  return (
+    <main className="screen teacher">
+      <h1 className="title">👩‍🏫 교사 콘솔</h1>
+      <p className="subtitle">내가 만든 문제를 ‘수업 꾸러미’ 코드로 학급에 나눠줘요</p>
+
+      {msg && <div className={`feedback ${msg.kind}`}>{msg.text}</div>}
+
+      <section className="set-card">
+        <h3 className="set-h">📦 단원별 내보내기</h3>
+        {groups.length === 0 ? (
+          <p className="set-note">아직 만든 문제가 없어요. ‘문제 만들기’에서 출제한 뒤 배포할 수 있어요.</p>
+        ) : (
+          <>
+            {groups.map((g) => {
+              const v = villagerById(g.villagerId)
+              return (
+                <div key={g.villagerId + g.unitName} className="teacher-row">
+                  <span className="teacher-unit">
+                    {v?.emoji} {v?.subject} · {g.unitName} <span className="manage-count">{g.items.length}</span>
+                  </span>
+                  <button className="btn sm" onClick={() => exportGroup(g)}>
+                    내보내기
+                  </button>
+                </div>
+              )
+            })}
+            <button className="btn" onClick={exportAll}>
+              전체 내보내기 ({props.items.length}문제)
+            </button>
+          </>
+        )}
+        {packCode && (
+          <>
+            <textarea className="field-input ta code-box" readOnly rows={3} value={packCode} onFocus={(e) => e.target.select()} />
+            <div className="set-row">
+              <button className="btn" onClick={copyPack}>📋 복사</button>
+              <button className="btn" onClick={downloadPack}>⬇️ 파일 저장</button>
+            </div>
+          </>
+        )}
+      </section>
+
+      <section className="set-card">
+        <h3 className="set-h">📥 수업 꾸러미 가져오기</h3>
+        <p className="set-note">받은 코드를 붙여넣으면 내 문제 목록에 합쳐져요(같은 문제는 건너뜀).</p>
+        <textarea
+          className="field-input ta"
+          rows={3}
+          placeholder="수업 꾸러미 코드 (BYEOLSUPPACK1-…)"
+          value={importText}
+          onChange={(e) => setImportText(e.target.value)}
+        />
+        <button className="btn primary" disabled={!importText.trim()} onClick={doImport}>
+          가져오기
+        </button>
+      </section>
+
+      <section className="set-card">
+        <h3 className="set-h">☁️ 실시간 학급 현황</h3>
+        <p className="set-note">
+          {firebaseEnabled
+            ? '클라우드가 연결돼 있어요. 반 학생들의 진척을 모으는 기능을 이어서 붙일 수 있어요.'
+            : '학생별 실시간 진척(누가 몇 점)을 모으려면 클라우드 연결이 필요해요. 지금은 코드로 문제를 배포하는 오프라인 방식이 동작합니다.'}
+        </p>
+      </section>
 
       <button className="btn ghost big" onClick={props.onBack}>
         돌아가기
