@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Problem } from '../types/problem'
 import { gradeProblem, correctAnswerText } from '../lib/grading'
+import { playCorrect, playWrong } from '../lib/sfx'
 
 export type PlayMode = 'study' | 'challenge'
 
@@ -84,6 +85,8 @@ export function QuestionCard({ problem, index, total, combo, mode, onSubmit, onE
     const r = gradeProblem(problem, resp)
     setResult(r)
     setSubmitted(true)
+    if (r.correct) playCorrect()
+    else playWrong()
     const timeLeftRatio = timeLimit ? Math.max(0, timeLeft) / timeLimit : 0
     pendingRef.current = { correct: r.correct, responses: resp, timeLeftRatio }
     // 도전 모드에서 정답이면 잠깐 보여주고 자동 진행. 그 외(오답·학습 모드,

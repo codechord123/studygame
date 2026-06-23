@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Problem } from '../types/problem'
 import type { GameResult } from './SpeedOxGame'
 import { QuestionCard } from './QuestionCard'
+import { computeScore } from '../game/gamification'
+import { playCombo } from '../lib/sfx'
 
 interface Props {
   problems: Problem[]
@@ -30,10 +32,14 @@ export function AcidRainGame({ problems, theme, onComplete, onExit }: Props) {
   )
   const [activePid, setActivePid] = useState<string | null>(null)
   const [results, setResults] = useState<GameResult[]>([])
-  const [splash, setSplash] = useState<null | { correct: boolean }>(null)
+  const [combo, setCombo] = useState(0)
+  const [gained, setGained] = useState(0)
+  const [splash, setSplash] = useState<null | { correct: boolean; pts: number; combo: number }>(null)
 
   const dropsRef = useRef<Drop[]>(drops)
   const resultsRef = useRef<GameResult[]>([])
+  const comboRef = useRef(0)
+  const gainedRef = useRef(0)
   const rafRef = useRef<number | null>(null)
   const lastRef = useRef(0)
 
@@ -79,15 +85,28 @@ export function AcidRainGame({ problems, theme, onComplete, onExit }: Props) {
 
   function answer(correct: boolean) {
     const pid = activePid!
+    const problem = all.find((p) => p.id === pid)
     const next = [...resultsRef.current, { id: pid, correct }]
     resultsRef.current = next
     setResults(next)
+    // 정답/오답 기본음은 QuestionCard 가 내므로, 여기선 콤보 효과음만 더한다.
+    let pts = 0
+    if (correct) {
+      comboRef.current += 1
+      pts = computeScore({ basePoints: problem?.points ?? 10, combo: comboRef.current })
+      gainedRef.current += pts
+      if (comboRef.current >= 2) playCombo(comboRef.current)
+    } else {
+      comboRef.current = 0
+    }
+    setCombo(comboRef.current)
+    setGained(gainedRef.current)
     // 푼 빗방울 제거
     dropsRef.current = dropsRef.current.filter((d) => d.pid !== pid)
     setDrops(dropsRef.current)
     setActivePid(null)
-    setSplash({ correct })
-    window.setTimeout(() => setSplash(null), 700)
+    setSplash({ correct, pts, combo: comboRef.current })
+    window.setTimeout(() => setSplash(null), 900)
     if (dropsRef.current.length === 0) {
       window.setTimeout(() => onComplete(next), 300)
     }
@@ -95,7 +114,6 @@ export function AcidRainGame({ problems, theme, onComplete, onExit }: Props) {
 
   const activeProblem = activePid ? all.find((p) => p.id === activePid) ?? null : null
   const solved = results.length
-  const score = results.filter((r) => r.correct).length
 
   return (
     <div className={`card rain-game ${theme ?? ''}`}>
@@ -108,7 +126,8 @@ export function AcidRainGame({ problems, theme, onComplete, onExit }: Props) {
         <span className="q-progress">
           {solved} / {all.length}
         </span>
-        <span className="ox-score">⭐ {score}</span>
+        {combo >= 2 && <span className="combo-chip">🔥 {combo} COMBO</span>}
+        <span className="ox-score">💎 {gained}</span>
       </div>
 
       <p className="rain-hint">떨어지는 빗방울을 콕! 누르면 문제가 나와요 💧</p>
@@ -127,7 +146,9 @@ export function AcidRainGame({ problems, theme, onComplete, onExit }: Props) {
         <div className="rain-ground" />
         {splash && (
           <div className={`rain-flash ${splash.correct ? 'good' : 'bad'}`}>
-            {splash.correct ? '정답! 🎉' : '아쉬워요 😢'}
+            {splash.correct
+              ? `정답! 🎉 +${splash.pts}${splash.combo >= 2 ? `  🔥${splash.combo}` : ''}`
+              : '아쉬워요 😢'}
           </div>
         )}
         {drops.length === 0 && !activeProblem && <div className="rain-clear">모든 빗방울을 풀었어요! 🌈</div>}

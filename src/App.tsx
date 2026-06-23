@@ -12,6 +12,7 @@ import { AnimalCharacter } from './components/AnimalCharacter'
 import { PhaserGame } from './react/game/PhaserGame'
 import { bridge } from './game/bridge'
 import { store, type WrongNote } from './lib/storage'
+import { playWin } from './lib/sfx'
 import {
   type PlayerProfile,
   emptyProfile,
@@ -1595,9 +1596,28 @@ function Result(props: {
 }) {
   const { session } = props
   const acc = Math.round((session.correct / session.problems.length) * 100)
+  const stars = acc >= 90 ? 3 : acc >= 60 ? 2 : acc >= 30 ? 1 : 0
+  useEffect(() => {
+    if (stars >= 1) playWin()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   return (
     <main className="screen result">
+      {stars >= 2 && (
+        <div className="confetti" aria-hidden>
+          {Array.from({ length: 14 }, (_, i) => (
+            <span key={i} className={`confetti-bit c${i % 5}`} style={{ left: `${(i * 7 + 4) % 100}%`, animationDelay: `${(i % 7) * 0.15}s` }} />
+          ))}
+        </div>
+      )}
       <h1 className="title">결과</h1>
+      <div className="result-stars" aria-label={`별 ${stars}개`}>
+        {[0, 1, 2].map((i) => (
+          <span key={i} className={`rstar ${i < stars ? 'on' : ''}`}>
+            ★
+          </span>
+        ))}
+      </div>
       <div className="result-big">{acc}점</div>
       <p>
         {session.problems.length}문제 중 <b>{session.correct}</b>개 정답 · 최고{' '}

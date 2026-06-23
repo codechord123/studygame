@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Problem } from '../types/problem'
 import { correctAnswerText } from '../lib/grading'
+import { playCorrect, playWrong } from '../lib/sfx'
 
 export interface GameResult {
   id: string
@@ -72,6 +73,8 @@ export function SpeedOxGame({ problems, theme, onComplete, onExit }: Props) {
   function answer(o: boolean | null) {
     if (picked) return
     const correct = o !== null && o === item.expectO
+    if (correct) playCorrect()
+    else playWrong()
     setPicked({ o: o ?? false, correct })
     const next = [...results, { id: item.problem.id, correct }]
     setResults(next)

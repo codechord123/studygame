@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { Problem } from '../types/problem'
 import { correctAnswerText } from '../lib/grading'
+import { playPop, playWrong } from '../lib/sfx'
 import type { GameResult } from './SpeedOxGame'
 
 interface Props {
@@ -64,6 +65,7 @@ export function MemoryGame({ problems, theme, onComplete, onExit }: Props) {
       const [a, b] = next.map((n) => cards[n])
       if (a.pid === b.pid && a.side !== b.side) {
         // 매치
+        playPop()
         const m = new Set(matched).add(a.pid)
         setTimeout(() => {
           setMatched(m)
@@ -73,6 +75,7 @@ export function MemoryGame({ problems, theme, onComplete, onExit }: Props) {
         }, 450)
       } else {
         // 실패 → 관련 문제에 missed 표시
+        playWrong()
         const ms = new Set(missed)
         ms.add(a.pid)
         ms.add(b.pid)

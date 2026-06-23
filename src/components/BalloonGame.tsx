@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Problem, MultipleChoiceProblem } from '../types/problem'
 import type { GameResult } from './SpeedOxGame'
+import { computeScore } from '../game/gamification'
+import { playCorrect, playWrong, playCombo, playPop } from '../lib/sfx'
 
 interface Props {
   problems: Problem[]
@@ -38,11 +40,15 @@ export function BalloonGame({ problems, theme, onComplete, onExit }: Props) {
   const [qi, setQi] = useState(0)
   const [balloons, setBalloons] = useState<Balloon[]>([])
   const [time, setTime] = useState(PER_SEC)
-  const [results, setResults] = useState<GameResult[]>([])
-  const [flash, setFlash] = useState<null | { correct: boolean; answer: string }>(null)
+  const [combo, setCombo] = useState(0)
+  const [gained, setGained] = useState(0)
+  const [popped, setPopped] = useState<number | null>(null)
+  const [flash, setFlash] = useState<null | { correct: boolean; answer: string; pts: number; combo: number }>(null)
 
   const balloonsRef = useRef<Balloon[]>([])
   const resultsRef = useRef<GameResult[]>([])
+  const comboRef = useRef(0)
+  const gainedRef = useRef(0)
   const lockRef = useRef(false)
   const rafRef = useRef<number | null>(null)
   const lastRef = useRef(0)
@@ -63,13 +69,14 @@ export function BalloonGame({ problems, theme, onComplete, onExit }: Props) {
       choiceIdx,
       correct: choiceIdx === problem.answer,
       x: 10 + (lane + 0.5) * (80 / n) + (Math.random() * 6 - 3),
-      y: 108 + lane * 26 + Math.random() * 14, // 아래에서 시차를 두고 떠오름
+      y: 108 + lane * 26 + Math.random() * 14,
       speed: 9 + Math.random() * 4,
       hue: Math.floor(Math.random() * 360),
     }))
     balloonsRef.current = next
     setBalloons(next)
     setFlash(null)
+    setPopped(null)
     setTime(PER_SEC)
     lastRef.current = 0
   }, [qi, problem])
@@ -86,7 +93,6 @@ export function BalloonGame({ problems, theme, onComplete, onExit }: Props) {
         let x = b.x
         let speed = b.speed
         if (y < -14) {
-          // 천장 위로 사라지면 아래에서 다시 떠오름
           y = 108 + Math.random() * 20
           x = 10 + Math.random() * 80
           speed = 9 + Math.random() * 4
@@ -121,24 +127,37 @@ export function BalloonGame({ problems, theme, onComplete, onExit }: Props) {
     lockRef.current = true
     const next = [...resultsRef.current, { id: problem.id, correct }]
     resultsRef.current = next
-    setResults(next)
-    setFlash({ correct, answer: problem.choices[problem.answer] })
+    let pts = 0
+    if (correct) {
+      comboRef.current += 1
+      pts = computeScore({ basePoints: problem.points, combo: comboRef.current })
+      gainedRef.current += pts
+      if (comboRef.current >= 2) playCombo(comboRef.current)
+      else playCorrect()
+    } else {
+      comboRef.current = 0
+      playWrong()
+    }
+    setCombo(comboRef.current)
+    setGained(gainedRef.current)
+    setFlash({ correct, answer: problem.choices[problem.answer], pts, combo: comboRef.current })
     window.setTimeout(() => {
       if (qi + 1 >= mcs.length) onComplete(next)
       else {
         setFlash(null)
         setQi(qi + 1)
       }
-    }, 950)
+    }, 1000)
   }
 
   function pop(b: Balloon) {
     if (lockRef.current) return
+    playPop()
+    setPopped(b.choiceIdx)
     resolve(b.correct)
   }
 
   if (!problem) return null
-  const score = results.filter((r) => r.correct).length
 
   return (
     <div className={`card balloon-game ${theme ?? ''}`}>
@@ -151,7 +170,8 @@ export function BalloonGame({ problems, theme, onComplete, onExit }: Props) {
         <span className="q-progress">
           {qi + 1} / {mcs.length}
         </span>
-        <span className="ox-score">⭐ {score}</span>
+        {combo >= 2 && <span className="combo-chip">🔥 {combo} COMBO</span>}
+        <span className="ox-score">💎 {gained}</span>
         <span className={`timer ${time <= 4 ? 'danger' : ''}`}>⏱ {time}s</span>
       </div>
 
@@ -162,7 +182,9 @@ export function BalloonGame({ problems, theme, onComplete, onExit }: Props) {
         {balloons.map((b) => (
           <button
             key={b.choiceIdx}
-            className={`balloon ${flash ? (b.correct ? 'reveal-ok' : 'reveal-no') : ''}`}
+            className={`balloon ${popped === b.choiceIdx ? 'pop-anim' : ''} ${
+              flash ? (b.correct ? 'reveal-ok' : 'reveal-no') : ''
+            }`}
             style={{ left: `${b.x}%`, top: `${b.y}%`, ['--hue' as string]: b.hue }}
             onClick={() => pop(b)}
             disabled={!!flash}
@@ -175,7 +197,11 @@ export function BalloonGame({ problems, theme, onComplete, onExit }: Props) {
 
       {flash && (
         <div className={`feedback ${flash.correct ? 'good' : 'bad'}`}>
-          <div className="feedback-head">{flash.correct ? '정답! 🎉' : `아쉬워요 — 정답: ${flash.answer}`}</div>
+          <div className="feedback-head">
+            {flash.correct
+              ? `정답! 🎉 +${flash.pts}${flash.combo >= 2 ? `  🔥${flash.combo} 콤보` : ''}`
+              : `아쉬워요 — 정답: ${flash.answer}`}
+          </div>
           {problem.explanation && <div className="explain">📘 {problem.explanation}</div>}
         </div>
       )}
