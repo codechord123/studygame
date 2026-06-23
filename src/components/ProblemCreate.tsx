@@ -160,15 +160,29 @@ export function ProblemCreate({ store, initialVillager, onSave, onBack }: Props)
         </div>
       </label>
 
-      <label className="field">
-        <span className="field-label">유형</span>
-        <select className="field-input" value={type} onChange={(e) => setType(e.target.value as ProblemType)}>
-          <option value="multiple_choice">객관식</option>
-          <option value="short_answer">주관식</option>
-          <option value="ox">OX</option>
-          <option value="fill_blank">빈칸 채우기</option>
-        </select>
-      </label>
+      <div className="field">
+        <span className="field-label">문제 유형 — 골라요</span>
+        <div className="type-grid">
+          {(
+            [
+              { v: 'multiple_choice', emoji: '✅', label: '객관식', hint: '보기에서 답 고르기' },
+              { v: 'short_answer', emoji: '✍️', label: '주관식', hint: '직접 답 쓰기 (보기 없음)' },
+              { v: 'ox', emoji: '⭕❌', label: 'OX', hint: '맞다 / 틀리다' },
+              { v: 'fill_blank', emoji: '🔲', label: '빈칸', hint: '빈칸 채우기' },
+            ] as const
+          ).map((t) => (
+            <button
+              key={t.v}
+              className={`type-btn ${type === t.v ? 'on' : ''}`}
+              onClick={() => setType(t.v as ProblemType)}
+            >
+              <span className="type-emoji">{t.emoji}</span>
+              <span className="type-label">{t.label}</span>
+              <span className="type-hint">{t.hint}</span>
+            </button>
+          ))}
+        </div>
+      </div>
 
       <label className="field">
         <span className="field-label">문제</span>
@@ -189,7 +203,7 @@ export function ProblemCreate({ store, initialVillager, onSave, onBack }: Props)
       {/* 유형별 답지 */}
       {type === 'multiple_choice' && (
         <div className="field">
-          <span className="field-label">보기 / 정답</span>
+          <span className="field-label">보기 입력 · 정답은 왼쪽 ○ 선택</span>
           {choices.map((c, idx) => (
             <div key={idx} className="choice-row">
               <input

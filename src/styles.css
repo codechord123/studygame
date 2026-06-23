@@ -1665,6 +1665,41 @@ body {
   flex-direction: column;
   gap: 6px;
 }
+.type-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.type-btn {
+  background: #0e1126;
+  border: 2px solid var(--line);
+  color: var(--ink);
+  border-radius: 14px;
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+}
+.type-btn:active {
+  transform: scale(0.97);
+}
+.type-btn.on {
+  border-color: var(--primary2);
+  background: #232a55;
+}
+.type-emoji {
+  font-size: 22px;
+}
+.type-label {
+  font-size: 15px;
+  font-weight: 800;
+}
+.type-hint {
+  font-size: 11px;
+  color: var(--muted);
+}
 .choice-row {
   display: flex;
   align-items: center;
