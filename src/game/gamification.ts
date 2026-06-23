@@ -15,8 +15,9 @@ export interface PlayerProfile {
   solvedCount: number
   correctCount: number
   bestScore: number // 한 세트 최고 점수(정답률) — 랭킹용
-  cosmetics: string[] // 보유한 옷·모자 id
-  equipped: string | null // 착용 중인 꾸미기 id
+  cosmetics: string[] // 보유한 코스튬 id
+  equipped: string | null // (구버전 호환) 단일 착용 id — 마이그레이션용
+  equip: Record<string, string> // 슬롯(hat/face/hand/cape) → 착용 코스튬 id
   daily: DailyState
   // ── 마을/정체성 ──
   onboarded: boolean // 첫 이사(온보딩) 완료 여부
@@ -45,6 +46,7 @@ export const emptyProfile: PlayerProfile = {
   bestScore: 0,
   cosmetics: [],
   equipped: null,
+  equip: {},
   daily: { date: todayStr(), solved: 0, bestCombo: 0, claimed: [] },
   onboarded: false,
   characterName: '',
@@ -64,6 +66,11 @@ export function normalizeProfile(p: Partial<PlayerProfile> | null | undefined): 
   merged.furniture = [...(p?.furniture ?? [])]
   merged.mastery = { ...(p?.mastery ?? {}) }
   merged.dexRewards = [...(p?.dexRewards ?? [])]
+  merged.equip = { ...(p?.equip ?? {}) }
+  // 구버전 단일 착용(equipped)을 hat 슬롯으로 이관
+  if (Object.keys(merged.equip).length === 0 && p?.equipped) {
+    merged.equip = { hat: p.equipped }
+  }
   if (merged.daily.date !== todayStr()) {
     merged.daily = { date: todayStr(), solved: 0, bestCombo: 0, claimed: [] }
   }

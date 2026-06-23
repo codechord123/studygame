@@ -1232,6 +1232,272 @@ body {
   cursor: pointer;
 }
 
+/* ── 홈 (두 파트) ──────────────────────────────────────────────── */
+.home2 {
+  gap: 18px;
+}
+.home-hello {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(135deg, #2c3566, #1d2247);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 16px 18px;
+}
+.home-avatar {
+  position: relative;
+  font-size: 46px;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.35));
+}
+.ha-hat {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 26px;
+}
+.home-name {
+  margin: 0;
+  font-size: 20px;
+}
+.home-title {
+  margin: 3px 0 0;
+  color: var(--accent);
+  font-size: 13px;
+}
+.pillars {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.pillar {
+  border: none;
+  border-radius: 22px;
+  padding: 26px 14px;
+  cursor: pointer;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 170px;
+  justify-content: center;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+  transition: transform 0.1s ease;
+}
+.pillar:active {
+  transform: scale(0.97);
+}
+.pillar-study {
+  background: linear-gradient(145deg, #5b6cf0, #3b45c4);
+}
+.pillar-dress {
+  background: linear-gradient(145deg, #ff8a5c, #e8537f);
+}
+.pillar-emoji {
+  font-size: 52px;
+}
+.pillar-name {
+  font-size: 20px;
+  font-weight: 900;
+}
+.pillar-desc {
+  font-size: 12px;
+  opacity: 0.92;
+}
+
+/* ── 꾸미기 (코스튬) ───────────────────────────────────────────── */
+.char-preview {
+  position: relative;
+  background: linear-gradient(180deg, #2a3566, #1d2247);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cp-base {
+  position: relative;
+  font-size: 84px;
+  line-height: 1;
+}
+.cp-hat {
+  position: absolute;
+  top: -34px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 44px;
+}
+.cp-face {
+  position: absolute;
+  top: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 34px;
+}
+.cp-hand {
+  position: absolute;
+  right: 22%;
+  bottom: 36px;
+  font-size: 40px;
+}
+.cp-cape {
+  position: absolute;
+  left: 22%;
+  bottom: 30px;
+  font-size: 44px;
+  opacity: 0.95;
+}
+.slot-block {
+  margin-top: 4px;
+}
+.slot-clear {
+  float: right;
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  border-radius: 999px;
+  font-size: 11px;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+.costume-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.costume-item {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+.costume-item.equipped {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.25);
+}
+.costume-item.locked {
+  opacity: 0.55;
+}
+.ci-emoji {
+  font-size: 30px;
+}
+.ci-name {
+  font-size: 11px;
+  color: var(--muted);
+}
+.ci-lock {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 700;
+}
+.ci-btn {
+  width: 100%;
+  padding: 7px;
+  font-size: 12px;
+}
+
+/* ── 미니게임 선택 ─────────────────────────────────────────────── */
+.mg-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.mg-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--theme, var(--primary));
+  border-radius: 16px;
+  padding: 16px;
+  cursor: pointer;
+  color: var(--ink);
+  text-align: left;
+}
+.mg-card:active {
+  transform: scale(0.98);
+}
+.mg-emoji {
+  font-size: 36px;
+}
+.mg-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mg-name {
+  font-size: 16px;
+}
+.mg-desc {
+  font-size: 12px;
+  color: var(--muted);
+}
+.mg-go {
+  color: var(--theme, var(--primary2));
+  font-size: 18px;
+  font-weight: 800;
+}
+
+/* 단원 카드 → 미니게임 진입 */
+.unit-card2 {
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+.unit-go {
+  font-size: 12px;
+  color: var(--theme, var(--primary2));
+  font-weight: 700;
+}
+
+/* 배틀 연출 */
+.play-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.battle-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 14px;
+  margin-top: 18px;
+}
+.battle-monster {
+  font-size: 30px;
+}
+.battle-hp {
+  flex: 1;
+  height: 12px;
+  background: #0c0e1c;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+.battle-hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff6b6b, #ff9a3c);
+  transition: width 0.4s ease;
+}
+.battle-label {
+  font-size: 12px;
+  color: var(--muted);
+  min-width: 56px;
+  text-align: right;
+}
+
 /* 단원 선택 */
 .units-head {
   display: flex;

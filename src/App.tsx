@@ -16,15 +16,21 @@ import {
   type Badge,
 } from './game/gamification'
 import {
-  COSMETICS,
-  cosmeticById,
   DAILY_MISSIONS,
   missionProgress,
   missionClaimable,
   leaderboard,
-  type Cosmetic,
   type RankEntry,
 } from './game/progression'
+import {
+  SLOTS,
+  itemsForSlot,
+  isUnlocked,
+  equippedEmoji,
+  type Slot,
+  type CostumeItem,
+} from './game/costume'
+import { MINIGAMES, type MiniGame } from './game/minigames'
 import {
   TOWN_NAME,
   AVATARS,
@@ -61,9 +67,12 @@ function themeOf(subject?: string): string {
 }
 
 type Screen =
-  | 'town'
-  | 'walk'
+  | 'home'
+  | 'subjects'
   | 'units'
+  | 'minigame'
+  | 'costume'
+  | 'walk'
   | 'quiz'
   | 'result'
   | 'wrong'
@@ -75,6 +84,10 @@ type Screen =
   | 'game'
   | 'dex'
   | 'dashboard'
+
+function hatOf(p: PlayerProfile): string | undefined {
+  return equippedEmoji(p.equip, 'hat')
+}
 
 function getCarrots(): number {
   return Number(localStorage.getItem('sg.carrots') || '0')
@@ -97,6 +110,7 @@ interface SessionState {
   masteryUpdates: MasteryMap // 이번 세션의 문항별 숙련도 변화
   fromGame?: boolean // Phaser 게임에서 시작된 세션(오버레이)
   plotId?: string // 채집밭에서 시작된 경우
+  miniGameId?: string // 선택한 미니게임 (battle 연출 등)
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -115,7 +129,7 @@ function prepareProblems(problems: Problem[], mode: PlayMode, mastery: MasteryMa
 
 export default function App() {
   const [loaded, setLoaded] = useState(false)
-  const [screen, setScreen] = useState<Screen>('town')
+  const [screen, setScreen] = useState<Screen>('home')
   const [profile, setProfile] = useState<PlayerProfile>(emptyProfile)
   const [session, setSession] = useState<SessionState | null>(null)
   const [wrongNotes, setWrongNotes] = useState<WrongNote[]>([])
@@ -125,6 +139,7 @@ export default function App() {
   const [gameSession, setGameSession] = useState<SessionState | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [unitVillager, setUnitVillager] = useState<Villager | null>(null)
+  const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null)
   const bridgeRef = useRef<{
     ui: (d: { type: FacilityScreen }) => void
     villager: (d: { id: string }) => void
@@ -156,17 +171,20 @@ export default function App() {
     persist({ ...profile, onboarded: true, characterName: name || '이웃', avatar })
   }
 
-  function buyCosmetic(c: Cosmetic) {
-    if (profile.coins < c.price || profile.cosmetics.includes(c.id)) return
+  function buyCostume(c: CostumeItem, level: number) {
+    if (profile.coins < c.price || profile.cosmetics.includes(c.id) || !isUnlocked(c, level)) return
     persist({
       ...profile,
       coins: profile.coins - c.price,
       cosmetics: [...profile.cosmetics, c.id],
-      equipped: c.id,
+      equip: { ...profile.equip, [c.slot]: c.id },
     })
   }
-  function equipCosmetic(id: string | null) {
-    persist({ ...profile, equipped: id })
+  function equipCostume(slot: Slot, id: string | null) {
+    const equip = { ...profile.equip }
+    if (id) equip[slot] = id
+    else delete equip[slot]
+    persist({ ...profile, equip })
   }
   function buyFurniture(f: Furniture) {
     if (profile.coins < f.price || profile.furniture.includes(f.id)) return
@@ -191,12 +209,13 @@ export default function App() {
 
   const { level, cur, need } = levelProgress(profile.xp)
 
-  function startQuiz(problems: Problem[], mode: PlayMode, villager?: Villager) {
+  function startQuiz(problems: Problem[], mode: PlayMode, villager?: Villager, miniGameId?: string) {
     setSession({
       problems: prepareProblems(problems, mode, profile.mastery),
       mode,
       villagerId: villager?.id,
       villagerName: villager?.name,
+      miniGameId,
       i: 0,
       combo: 0,
       bestCombo: 0,
@@ -208,11 +227,19 @@ export default function App() {
     setEarnedBadges([])
     setScreen('quiz')
   }
+  function chooseUnit(u: Unit) {
+    setSelectedUnit(u)
+    setScreen('minigame')
+  }
+  function startMiniGame(g: MiniGame) {
+    if (!selectedUnit) return
+    startQuiz(selectedUnit.problems, g.mode, unitVillager ?? undefined, g.id)
+  }
 
   function exitQuiz() {
     if (window.confirm('지금 나가면 이번 풀이는 저장되지 않아요. 마을로 돌아갈까요?')) {
       setSession(null)
-      setScreen('town')
+      setScreen('home')
     }
   }
 
@@ -460,18 +487,32 @@ export default function App() {
         cur={cur}
         need={need}
         coins={profile.coins}
-        cosmetic={cosmeticById(profile.equipped)?.emoji}
-        onProfile={() => setScreen('room')}
+        cosmetic={hatOf(profile)}
+        onProfile={() => setScreen('costume')}
         onMenu={() => setMenuOpen(true)}
       />
 
       {menuOpen && <MainMenu onGo={go} onClose={() => setMenuOpen(false)} />}
 
+      {screen === 'home' && (
+        <Home profile={profile} level={level} onGo={go} />
+      )}
+
+      {screen === 'costume' && (
+        <Costume
+          profile={profile}
+          level={level}
+          onBuy={(c) => buyCostume(c, level)}
+          onEquip={equipCostume}
+          onBack={() => setScreen('home')}
+        />
+      )}
+
       {screen === 'dashboard' && (
         <Dashboard profile={profile} level={level} cur={cur} need={need} onGo={go} />
       )}
 
-      {screen === 'town' && (
+      {screen === 'subjects' && (
         <Plaza
           profile={profile}
           onUnits={openUnits}
@@ -484,16 +525,25 @@ export default function App() {
         <UnitSelect
           villager={unitVillager}
           profile={profile}
-          onStart={(problems, mode) => startQuiz(problems, mode, unitVillager)}
+          onChoose={chooseUnit}
           onMake={() => makeForVillager(unitVillager)}
-          onBack={() => setScreen('town')}
+          onBack={() => setScreen('subjects')}
+        />
+      )}
+
+      {screen === 'minigame' && selectedUnit && (
+        <MiniGameSelect
+          unit={selectedUnit}
+          subject={unitVillager?.subject}
+          onPick={startMiniGame}
+          onBack={() => setScreen('units')}
         />
       )}
 
       {screen === 'walk' && (
         <TownMap
           avatar={profile.avatar}
-          hat={cosmeticById(profile.equipped)?.emoji}
+          hat={hatOf(profile)}
           characterName={profile.characterName}
           houseStage={profile.houseStage}
           mates={classmates.filter((c) => !c.me)}
@@ -508,17 +558,22 @@ export default function App() {
       )}
 
       {screen === 'quiz' && session && (
-        <QuestionCard
-          key={session.problems[session.i].id}
-          problem={session.problems[session.i]}
-          index={session.i}
-          total={session.problems.length}
-          combo={session.combo}
-          mode={session.mode}
-          theme={themeOf(session.problems[session.i].subject)}
-          onSubmit={handleSubmit}
-          onExit={exitQuiz}
-        />
+        <div className="play-wrap">
+          {session.miniGameId === 'battle' && (
+            <BattleBar correct={session.correct} total={session.problems.length} />
+          )}
+          <QuestionCard
+            key={session.problems[session.i].id}
+            problem={session.problems[session.i]}
+            index={session.i}
+            total={session.problems.length}
+            combo={session.combo}
+            mode={session.mode}
+            theme={themeOf(session.problems[session.i].subject)}
+            onSubmit={handleSubmit}
+            onExit={exitQuiz}
+          />
+        </div>
       )}
 
       {screen === 'result' && session && (
@@ -526,7 +581,7 @@ export default function App() {
           session={session}
           earned={earnedBadges}
           friends={profile.villagerFriends}
-          onHome={() => setScreen('town')}
+          onHome={() => setScreen('home')}
           onWrong={() => setScreen('wrong')}
         />
       )}
@@ -539,7 +594,7 @@ export default function App() {
             carrots={getCarrots()}
             onExit={() => {
               setGameSession(null)
-              setScreen('town')
+              setScreen('home')
             }}
           />
           {gameSession && (
@@ -565,7 +620,7 @@ export default function App() {
           villagerName={aiVillager?.name}
           onBack={() => {
             setAiVillager(null)
-            setScreen('town')
+            setScreen('home')
           }}
           onUse={(problems) => {
             const v = aiVillager ?? undefined
@@ -576,13 +631,7 @@ export default function App() {
       )}
 
       {screen === 'shop' && (
-        <Shop
-          profile={profile}
-          onBuy={buyCosmetic}
-          onEquip={equipCosmetic}
-          onBuyFurniture={buyFurniture}
-          onBack={() => setScreen('town')}
-        />
+        <Shop profile={profile} onBuyFurniture={buyFurniture} onBack={() => setScreen('room')} />
       )}
 
       {screen === 'room' && (
@@ -595,24 +644,24 @@ export default function App() {
           onShop={() => setScreen('shop')}
           onGame={() => setScreen('game')}
           onDex={() => setScreen('dex')}
-          onBack={() => setScreen('town')}
+          onBack={() => setScreen('home')}
         />
       )}
 
-      {screen === 'dex' && <Dex profile={profile} onBack={() => setScreen('town')} />}
+      {screen === 'dex' && <Dex profile={profile} onBack={() => setScreen('home')} />}
 
       {screen === 'missions' && (
-        <Missions profile={profile} onClaim={claimMission} onBack={() => setScreen('town')} />
+        <Missions profile={profile} onClaim={claimMission} onBack={() => setScreen('home')} />
       )}
 
       {screen === 'ranking' && (
-        <Ranking profile={profile} onRename={renameCharacter} onBack={() => setScreen('town')} />
+        <Ranking profile={profile} onRename={renameCharacter} onBack={() => setScreen('home')} />
       )}
 
       {screen === 'wrong' && (
         <WrongBook
           notes={wrongNotes}
-          onBack={() => setScreen('town')}
+          onBack={() => setScreen('home')}
           onRetry={(notes) => startQuiz(notes.map((n) => n.problem), 'study')}
           onResolved={async (id) => {
             await store.markResolved(id)
@@ -763,14 +812,14 @@ function Plaza(props: {
       </div>
 
       <div className="plaza-quick">
+        <button className="quick-btn" onClick={() => props.onGo('home')}>
+          🏠 홈
+        </button>
         <button className="quick-btn" onClick={() => props.onGo('dashboard')}>
           📊 학습 현황
         </button>
         <button className="quick-btn" onClick={() => props.onGo('dex')}>
           📜 도감
-        </button>
-        <button className="quick-btn" onClick={() => props.onGo('walk')}>
-          🚶 마을 산책
         </button>
       </div>
 
@@ -824,11 +873,172 @@ function Plaza(props: {
   )
 }
 
+// ── 홈 (두 파트: 공부하기 / 꾸미기) ───────────────────────────────
+function Home(props: { profile: PlayerProfile; level: number; onGo: (s: Screen) => void }) {
+  const hat = equippedEmoji(props.profile.equip, 'hat')
+  return (
+    <main className="screen home2">
+      <div className="home-hello">
+        <span className="home-avatar">
+          {hat && <span className="ha-hat">{hat}</span>}
+          {props.profile.avatar}
+        </span>
+        <div>
+          <h1 className="home-name">{props.profile.characterName}</h1>
+          <p className="home-title">{titleForLevel(props.level)} · Lv.{props.level}</p>
+        </div>
+      </div>
+
+      <div className="pillars">
+        <button className="pillar pillar-study" onClick={() => props.onGo('subjects')}>
+          <span className="pillar-emoji">📚</span>
+          <span className="pillar-name">공부하기</span>
+          <span className="pillar-desc">과목 · 단원 · 미니게임</span>
+        </button>
+        <button className="pillar pillar-dress" onClick={() => props.onGo('costume')}>
+          <span className="pillar-emoji">👕</span>
+          <span className="pillar-name">꾸미기</span>
+          <span className="pillar-desc">코스튬 · 레벨로 해금</span>
+        </button>
+      </div>
+
+      <div className="plaza-quick">
+        <button className="quick-btn" onClick={() => props.onGo('dashboard')}>📊 학습 현황</button>
+        <button className="quick-btn" onClick={() => props.onGo('dex')}>📜 도감</button>
+        <button className="quick-btn" onClick={() => props.onGo('room')}>🏠 내 집</button>
+      </div>
+    </main>
+  )
+}
+
+// ── 꾸미기 (캐릭터 코스튬) ────────────────────────────────────────
+function Costume(props: {
+  profile: PlayerProfile
+  level: number
+  onBuy: (c: CostumeItem) => void
+  onEquip: (slot: Slot, id: string | null) => void
+  onBack: () => void
+}) {
+  const { profile, level } = props
+  return (
+    <main className="screen costume">
+      <h1 className="title">👕 꾸미기</h1>
+      <p className="subtitle">🔔 {profile.coins} 벨 · 레벨이 오르면 더 멋진 코스튬이 열려요</p>
+
+      <div className="char-preview">
+        <span className="cp-cape">{equippedEmoji(profile.equip, 'cape')}</span>
+        <span className="cp-base">
+          <span className="cp-hat">{equippedEmoji(profile.equip, 'hat')}</span>
+          {profile.avatar}
+          <span className="cp-face">{equippedEmoji(profile.equip, 'face')}</span>
+        </span>
+        <span className="cp-hand">{equippedEmoji(profile.equip, 'hand')}</span>
+      </div>
+
+      {SLOTS.map(({ slot, label }) => (
+        <div key={slot} className="slot-block">
+          <h3 className="section-label">
+            {label}
+            {profile.equip[slot] && (
+              <button className="slot-clear" onClick={() => props.onEquip(slot, null)}>
+                벗기
+              </button>
+            )}
+          </h3>
+          <div className="costume-grid">
+            {itemsForSlot(slot).map((c) => {
+              const owned = profile.cosmetics.includes(c.id)
+              const equipped = profile.equip[slot] === c.id
+              const unlocked = isUnlocked(c, level)
+              const afford = profile.coins >= c.price
+              return (
+                <div
+                  key={c.id}
+                  className={`costume-item ${equipped ? 'equipped' : ''} ${!unlocked ? 'locked' : ''}`}
+                >
+                  <span className="ci-emoji">{unlocked ? c.emoji : '🔒'}</span>
+                  <span className="ci-name">{c.name}</span>
+                  {!unlocked ? (
+                    <span className="ci-lock">Lv.{c.minLevel}</span>
+                  ) : owned ? (
+                    <button
+                      className={`btn ${equipped ? 'primary' : 'ghost'} ci-btn`}
+                      onClick={() => props.onEquip(slot, equipped ? null : c.id)}
+                    >
+                      {equipped ? '착용 중' : '착용'}
+                    </button>
+                  ) : (
+                    <button className="btn accent ci-btn" disabled={!afford} onClick={() => props.onBuy(c)}>
+                      🔔 {c.price}
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+
+      <button className="btn ghost big" onClick={props.onBack}>
+        홈으로
+      </button>
+    </main>
+  )
+}
+
+// ── 미니게임 선택 ─────────────────────────────────────────────────
+function MiniGameSelect(props: {
+  unit: Unit
+  subject?: string
+  onPick: (g: MiniGame) => void
+  onBack: () => void
+}) {
+  const theme = themeOf(props.subject ?? props.unit.subject)
+  return (
+    <main className={`screen minigame ${theme}`}>
+      <h1 className="title sm">{props.unit.unit}</h1>
+      <p className="subtitle">어떻게 풀어볼까요?</p>
+
+      <div className="mg-list">
+        {MINIGAMES.map((g) => (
+          <button key={g.id} className="mg-card" onClick={() => props.onPick(g)}>
+            <span className="mg-emoji">{g.emoji}</span>
+            <div className="mg-body">
+              <b className="mg-name">{g.name}</b>
+              <span className="mg-desc">{g.desc}</span>
+            </div>
+            <span className="mg-go">▶</span>
+          </button>
+        ))}
+      </div>
+
+      <button className="btn ghost big" onClick={props.onBack}>
+        단원으로
+      </button>
+    </main>
+  )
+}
+
+// 몬스터 배틀 연출 바
+function BattleBar(props: { correct: number; total: number }) {
+  const hpPct = props.total ? Math.max(0, ((props.total - props.correct) / props.total) * 100) : 100
+  const defeated = props.total > 0 && props.correct >= props.total
+  return (
+    <div className="battle-bar">
+      <span className="battle-monster">{defeated ? '💥' : '👾'}</span>
+      <div className="battle-hp">
+        <div className="battle-hp-fill" style={{ width: `${hpPct}%` }} />
+      </div>
+      <span className="battle-label">{defeated ? '쓰러뜨림!' : `HP ${Math.round(hpPct)}%`}</span>
+    </div>
+  )
+}
+
 // ── 단원 선택 ─────────────────────────────────────────────────────
 function UnitSelect(props: {
   villager: Villager
   profile: PlayerProfile
-  onStart: (problems: Problem[], mode: PlayMode) => void
+  onChoose: (u: Unit) => void
   onMake: () => void
   onBack: () => void
 }) {
@@ -864,28 +1074,19 @@ function UnitSelect(props: {
             const pct = total ? Math.round((mastered / total) * 100) : 0
             const done = total > 0 && mastered === total
             return (
-              <div key={u.id} className={`unit-card2 ${done ? 'done' : ''}`}>
-                <div className="unit-top">
-                  <div className="unit-titles">
-                    <b className="unit-name2">{u.unit}</b>
-                    <span className="unit-sub2">
-                      {u.grade ? u.grade + ' · ' : ''}
-                      {total}문제 · 익힘 {mastered}/{total} {done ? '✅' : ''}
-                    </span>
-                  </div>
+              <button key={u.id} className={`unit-card2 ${done ? 'done' : ''}`} onClick={() => props.onChoose(u)}>
+                <div className="unit-titles">
+                  <b className="unit-name2">{u.unit}</b>
+                  <span className="unit-sub2">
+                    {u.grade ? u.grade + ' · ' : ''}
+                    {total}문제 · 익힘 {mastered}/{total} {done ? '✅' : ''}
+                  </span>
                 </div>
                 <div className="mission-bar">
                   <div className="mission-bar-fill" style={{ width: `${pct}%` }} />
                 </div>
-                <div className="unit-actions">
-                  <button className="btn primary" onClick={() => props.onStart(u.problems, 'study')}>
-                    📖 학습
-                  </button>
-                  <button className="btn challenge" onClick={() => props.onStart(u.problems, 'challenge')}>
-                    ⚡ 도전
-                  </button>
-                </div>
-              </div>
+                <span className="unit-go">미니게임 고르기 ▶</span>
+              </button>
             )
           })}
         </div>
@@ -904,15 +1105,15 @@ function UnitSelect(props: {
 // ── 메뉴 (어디서든 빠른 이동 = 대시보드 허브) ─────────────────────
 function MainMenu(props: { onGo: (s: Screen) => void; onClose: () => void }) {
   const items: { s: Screen; emoji: string; label: string }[] = [
-    { s: 'town', emoji: '🏛️', label: '광장' },
+    { s: 'home', emoji: '🏠', label: '홈' },
+    { s: 'subjects', emoji: '📚', label: '공부하기' },
+    { s: 'costume', emoji: '👕', label: '꾸미기' },
     { s: 'dashboard', emoji: '📊', label: '학습 현황' },
     { s: 'dex', emoji: '📜', label: '학습 도감' },
     { s: 'wrong', emoji: '📒', label: '오답노트' },
-    { s: 'ai', emoji: '🤖', label: '문제공방' },
-    { s: 'shop', emoji: '🛍️', label: '상점' },
     { s: 'missions', emoji: '🎯', label: '미션' },
     { s: 'ranking', emoji: '🏆', label: '랭킹' },
-    { s: 'room', emoji: '🏠', label: '내 집' },
+    { s: 'room', emoji: '🛖', label: '내 집' },
     { s: 'walk', emoji: '🚶', label: '마을 산책' },
     { s: 'game', emoji: '🎮', label: '필드 (베타)' },
   ]
@@ -999,8 +1200,8 @@ function Dashboard(props: {
         </div>
       )}
 
-      <button className="btn primary big" onClick={() => props.onGo('town')}>
-        🗺️ 마을에서 공부하기
+      <button className="btn primary big" onClick={() => props.onGo('subjects')}>
+        📚 공부하러 가기
       </button>
       <button className="btn ghost big" onClick={() => props.onGo('dex')}>
         📜 학습 도감 보기
@@ -1034,7 +1235,7 @@ function Room(props: {
   const { profile } = props
   const [name, setName] = useState(profile.characterName)
   const placed = profile.furniture.map(furnitureById).filter(Boolean) as Furniture[]
-  const hat = cosmeticById(profile.equipped)?.emoji
+  const hat = equippedEmoji(profile.equip, 'hat')
   const house = houseInfo(profile.houseStage)
   const nextCost = nextHouseCost(profile.houseStage)
   const canUpgrade = nextCost != null && profile.coins >= nextCost
@@ -1137,101 +1338,46 @@ function Room(props: {
   )
 }
 
-// ── 상점 (옷 / 가구 탭) ───────────────────────────────────────────
+// ── 가구 상점 (집 꾸미기) ─────────────────────────────────────────
 function Shop(props: {
   profile: PlayerProfile
-  onBuy: (c: Cosmetic) => void
-  onEquip: (id: string | null) => void
   onBuyFurniture: (f: Furniture) => void
   onBack: () => void
 }) {
   const { profile } = props
-  const [tab, setTab] = useState<'clothes' | 'furniture'>('clothes')
   return (
     <main className="screen shop">
-      <h1 className="title">🛍️ 마을 상점</h1>
-      <p className="subtitle">🔔 {profile.coins} 벨 · 문제를 풀면 벨이 모여요</p>
+      <h1 className="title">🛍️ 가구 상점</h1>
+      <p className="subtitle">🔔 {profile.coins} 벨 · 집을 꾸며요 (캐릭터는 꾸미기에서)</p>
 
-      <div className="tab-row">
-        <button className={`tab ${tab === 'clothes' ? 'on' : ''}`} onClick={() => setTab('clothes')}>
-          👒 옷·모자
-        </button>
-        <button
-          className={`tab ${tab === 'furniture' ? 'on' : ''}`}
-          onClick={() => setTab('furniture')}
-        >
-          🪑 가구
-        </button>
+      <div className="shop-grid">
+        {FURNITURE.map((f) => {
+          const owned = profile.furniture.includes(f.id)
+          const afford = profile.coins >= f.price
+          return (
+            <div key={f.id} className={`shop-item ${owned ? 'equipped' : ''}`}>
+              <span className="shop-emoji">{f.emoji}</span>
+              <span className="shop-name">{f.name}</span>
+              {owned ? (
+                <button className="btn ghost shop-btn" disabled>
+                  보유 중
+                </button>
+              ) : (
+                <button
+                  className="btn accent shop-btn"
+                  disabled={!afford}
+                  onClick={() => props.onBuyFurniture(f)}
+                >
+                  🔔 {f.price}
+                </button>
+              )}
+            </div>
+          )
+        })}
       </div>
 
-      {tab === 'clothes' ? (
-        <>
-          <button
-            className={`btn ghost ${profile.equipped === null ? 'selected' : ''}`}
-            onClick={() => props.onEquip(null)}
-          >
-            꾸미기 벗기
-          </button>
-          <div className="shop-grid">
-            {COSMETICS.map((c) => {
-              const owned = profile.cosmetics.includes(c.id)
-              const equipped = profile.equipped === c.id
-              const afford = profile.coins >= c.price
-              return (
-                <div key={c.id} className={`shop-item ${equipped ? 'equipped' : ''}`}>
-                  <span className="shop-emoji">{c.emoji}</span>
-                  <span className="shop-name">{c.name}</span>
-                  {owned ? (
-                    <button
-                      className={`btn ${equipped ? 'primary' : 'ghost'} shop-btn`}
-                      onClick={() => props.onEquip(c.id)}
-                    >
-                      {equipped ? '착용 중' : '착용'}
-                    </button>
-                  ) : (
-                    <button
-                      className="btn accent shop-btn"
-                      disabled={!afford}
-                      onClick={() => props.onBuy(c)}
-                    >
-                      🔔 {c.price}
-                    </button>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </>
-      ) : (
-        <div className="shop-grid">
-          {FURNITURE.map((f) => {
-            const owned = profile.furniture.includes(f.id)
-            const afford = profile.coins >= f.price
-            return (
-              <div key={f.id} className={`shop-item ${owned ? 'equipped' : ''}`}>
-                <span className="shop-emoji">{f.emoji}</span>
-                <span className="shop-name">{f.name}</span>
-                {owned ? (
-                  <button className="btn ghost shop-btn" disabled>
-                    보유 중
-                  </button>
-                ) : (
-                  <button
-                    className="btn accent shop-btn"
-                    disabled={!afford}
-                    onClick={() => props.onBuyFurniture(f)}
-                  >
-                    🔔 {f.price}
-                  </button>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      )}
-
       <button className="btn ghost big" onClick={props.onBack}>
-        마을로
+        내 집으로
       </button>
     </main>
   )
