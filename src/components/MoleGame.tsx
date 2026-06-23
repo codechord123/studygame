@@ -42,6 +42,7 @@ export function MoleGame({ problems, theme, onComplete, onExit }: Props) {
 
   const resultsRef = useRef<GameResult[]>([])
   const lockRef = useRef(false)
+  const correctHoleRef = useRef(0)
   const problem = mcs[qi]
 
   useEffect(() => {
@@ -49,24 +50,29 @@ export function MoleGame({ problems, theme, onComplete, onExit }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 두더지 솟기 (주기적으로 보기를 무작위 구멍에 배치, 정답은 항상 포함)
+  // 두더지 솟기 — 정답 두더지는 한 구멍에 고정(노리는 사이 사라지지 않게),
+  // 오답 두더지만 주변 구멍을 돌아다닌다.
   useEffect(() => {
     if (!problem || flash) return
     lockRef.current = false
+    const correctHole = Math.floor(Math.random() * HOLES)
+    correctHoleRef.current = correctHole
 
     function roll() {
-      const holes = shuffle(Array.from({ length: HOLES }, (_, i) => i))
-      const idxs = shuffle(problem.choices.map((_, i) => i))
-      // 정답을 항상 포함하고, 그 외 보기에서 1~2개만 더 노출(헷갈리지 않게)
-      const others = idxs.filter((i) => i !== problem.answer)
+      const others = shuffle(problem.choices.map((_, i) => i).filter((i) => i !== problem.answer))
       const showCount = Math.min(others.length, 1 + Math.floor(Math.random() * 2))
-      const chosen = [problem.answer, ...others.slice(0, showCount)]
-      const next: Mole[] = chosen.map((choiceIdx, k) => ({
-        hole: holes[k],
-        choiceIdx,
-        correct: choiceIdx === problem.answer,
-      }))
-      setMoles(shuffle(next))
+      const freeHoles = shuffle(
+        Array.from({ length: HOLES }, (_, i) => i).filter((h) => h !== correctHole),
+      )
+      const next: Mole[] = [
+        { hole: correctHole, choiceIdx: problem.answer, correct: true },
+        ...others.slice(0, showCount).map((choiceIdx, k) => ({
+          hole: freeHoles[k],
+          choiceIdx,
+          correct: false,
+        })),
+      ]
+      setMoles(next)
     }
 
     roll()

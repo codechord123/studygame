@@ -24,11 +24,11 @@ export interface MiniGame {
 export const MINIGAMES: MiniGame[] = [
   { id: 'study',  emoji: '📖', name: '차근차근',     desc: '타이머 없이 정답·풀이를 확인하며',     kind: 'card',   mode: 'study',     pool: 'all',    count: 12 },
   { id: 'rain',   emoji: '🌧️', name: '산성비 피하기', desc: '빗방울을 콕! 누르면 문제가 나와요',     kind: 'rain',   mode: 'challenge', pool: 'speed',  count: 8 },
-  { id: 'mole',   emoji: '🔨', name: '두더지 잡기',   desc: '정답을 든 두더지를 콩! (천천히)',       kind: 'mole',   mode: 'challenge', pool: 'battle', count: 8 },
+  { id: 'mole',   emoji: '🔨', name: '두더지 잡기',   desc: '정답을 든 두더지를 콩! (천천히)',       kind: 'mole',   mode: 'challenge', pool: 'speed',  count: 8 },
   { id: 'balloon',emoji: '🎈', name: '풍선 터뜨리기', desc: '정답이 든 풍선을 펑! 터뜨려요',         kind: 'balloon',mode: 'challenge', pool: 'speed',  count: 8 },
   { id: 'ox',     emoji: '🆗', name: 'OX 진실 게임',  desc: '맞으면 O, 틀리면 X 빠르게 판단!',       kind: 'ox',     mode: 'challenge', pool: 'ox',     count: 14 },
   { id: 'memory', emoji: '🃏', name: '짝꿍 카드',     desc: '4×4 카드에서 용어와 뜻을 짝지어요',     kind: 'memory', mode: 'study',     pool: 'memory', count: 8 },
-  { id: 'fill',   emoji: '🔲', name: '빈칸 술술',     desc: '핵심 낱말로 빈칸 채우기 (천천히)',      kind: 'card',   mode: 'challenge', pool: 'fill',   count: 10 },
+  { id: 'fill',   emoji: '🔲', name: '빈칸 술술',     desc: '핵심 낱말로 빈칸 채우기 (천천히)',      kind: 'card',   mode: 'study',     pool: 'fill',   count: 10 },
 ]
 
 export function miniGameById(id: string): MiniGame | undefined {
