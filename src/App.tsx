@@ -6,6 +6,7 @@ import { store, type WrongNote } from './lib/storage'
 import {
   type PlayerProfile,
   emptyProfile,
+  normalizeProfile,
   levelProgress,
   petForLevel,
   comboMultiplier,
@@ -14,9 +15,18 @@ import {
   BADGES,
   type Badge,
 } from './game/gamification'
+import {
+  COSMETICS,
+  cosmeticById,
+  DAILY_MISSIONS,
+  missionProgress,
+  missionClaimable,
+  leaderboard,
+  type Cosmetic,
+} from './game/progression'
 import type { Problem } from './types/problem'
 
-type Screen = 'home' | 'quiz' | 'result' | 'wrong' | 'ai'
+type Screen = 'home' | 'quiz' | 'result' | 'wrong' | 'ai' | 'shop' | 'missions' | 'ranking'
 
 interface SessionState {
   problems: Problem[]
@@ -36,9 +46,35 @@ export default function App() {
   const [earnedBadges, setEarnedBadges] = useState<Badge[]>([])
 
   useEffect(() => {
-    store.loadProfile().then(setProfile)
+    store.loadProfile().then((p) => setProfile(normalizeProfile(p)))
     store.loadWrongNotes().then(setWrongNotes)
   }, [])
+
+  async function persist(next: PlayerProfile) {
+    setProfile(next)
+    await store.saveProfile(next)
+  }
+
+  function buyCosmetic(c: Cosmetic) {
+    if (profile.coins < c.price || profile.cosmetics.includes(c.id)) return
+    persist({
+      ...profile,
+      coins: profile.coins - c.price,
+      cosmetics: [...profile.cosmetics, c.id],
+      equipped: c.id,
+    })
+  }
+  function equipCosmetic(id: string | null) {
+    persist({ ...profile, equipped: id })
+  }
+  function claimMission(id: string, reward: number) {
+    if (profile.daily.claimed.includes(id)) return
+    persist({
+      ...profile,
+      coins: profile.coins + reward,
+      daily: { ...profile.daily, claimed: [...profile.daily.claimed, id] },
+    })
+  }
 
   const { level, cur, need } = levelProgress(profile.xp)
   const pet = petForLevel(level)
@@ -102,6 +138,7 @@ export default function App() {
   }
 
   async function finishSession(s: SessionState) {
+    const score = Math.round((s.correct / s.problems.length) * 100)
     const updated: PlayerProfile = {
       ...profile,
       xp: profile.xp + s.gained,
@@ -109,6 +146,12 @@ export default function App() {
       bestCombo: Math.max(profile.bestCombo, s.bestCombo),
       solvedCount: profile.solvedCount + s.problems.length,
       correctCount: profile.correctCount + s.correct,
+      bestScore: Math.max(profile.bestScore, score),
+      daily: {
+        ...profile.daily,
+        solved: profile.daily.solved + s.problems.length,
+        bestCombo: Math.max(profile.daily.bestCombo, s.bestCombo),
+      },
     }
     const perfect = s.correct === s.problems.length
     const fresh = newlyEarnedBadges({
@@ -130,7 +173,14 @@ export default function App() {
   // ── 화면별 렌더 ─────────────────────────────────────────────────
   return (
     <div className="app">
-      <Hud level={level} cur={cur} need={need} xp={profile.xp} coins={profile.coins} pet={pet} />
+      <Hud
+        level={level}
+        cur={cur}
+        need={need}
+        coins={profile.coins}
+        pet={pet}
+        cosmetic={cosmeticById(profile.equipped)?.emoji}
+      />
 
       {screen === 'home' && (
         <Home
@@ -139,11 +189,32 @@ export default function App() {
           onStart={() => startQuiz(sampleQuiz.problems)}
           onWrong={() => setScreen('wrong')}
           onAi={() => setScreen('ai')}
+          onShop={() => setScreen('shop')}
+          onMissions={() => setScreen('missions')}
+          onRanking={() => setScreen('ranking')}
+          claimable={DAILY_MISSIONS.some((m) => missionClaimable(m, profile.daily))}
         />
       )}
 
       {screen === 'ai' && (
         <AiMaker onBack={() => setScreen('home')} onUse={(problems) => startQuiz(problems)} />
+      )}
+
+      {screen === 'shop' && (
+        <Shop
+          profile={profile}
+          onBuy={buyCosmetic}
+          onEquip={equipCosmetic}
+          onBack={() => setScreen('home')}
+        />
+      )}
+
+      {screen === 'missions' && (
+        <Missions profile={profile} onClaim={claimMission} onBack={() => setScreen('home')} />
+      )}
+
+      {screen === 'ranking' && (
+        <Ranking profile={profile} onBack={() => setScreen('home')} />
       )}
 
       {screen === 'quiz' && session && (
@@ -186,14 +257,17 @@ function Hud(props: {
   level: number
   cur: number
   need: number
-  xp: number
   coins: number
   pet: { emoji: string; name: string }
+  cosmetic?: string
 }) {
   return (
     <header className="hud">
       <div className="pet">
-        <span className="pet-emoji">{props.pet.emoji}</span>
+        <span className="pet-emoji">
+          {props.cosmetic && <span className="pet-hat">{props.cosmetic}</span>}
+          {props.pet.emoji}
+        </span>
         <span className="pet-name">{props.pet.name}</span>
       </div>
       <div className="hud-bars">
@@ -222,6 +296,10 @@ function Home(props: {
   onStart: () => void
   onWrong: () => void
   onAi: () => void
+  onShop: () => void
+  onMissions: () => void
+  onRanking: () => void
+  claimable: boolean
 }) {
   return (
     <main className="screen home">
@@ -238,6 +316,19 @@ function Home(props: {
         📒 오답노트
         {props.unresolved > 0 && <span className="badge-count">{props.unresolved}</span>}
       </button>
+
+      <nav className="home-nav">
+        <button className="nav-btn" onClick={props.onMissions}>
+          <span className="nav-emoji">🎯</span>일일미션
+          {props.claimable && <span className="dot" />}
+        </button>
+        <button className="nav-btn" onClick={props.onShop}>
+          <span className="nav-emoji">🛍️</span>펫 상점
+        </button>
+        <button className="nav-btn" onClick={props.onRanking}>
+          <span className="nav-emoji">🏆</span>랭킹
+        </button>
+      </nav>
 
       <section className="badge-shelf">
         <h3>뱃지</h3>
@@ -334,6 +425,143 @@ function WrongBook(props: {
         ))}
       </ul>
 
+      <button className="btn ghost big" onClick={props.onBack}>
+        홈으로
+      </button>
+    </main>
+  )
+}
+
+// ── 펫 상점 ───────────────────────────────────────────────────────
+function Shop(props: {
+  profile: PlayerProfile
+  onBuy: (c: Cosmetic) => void
+  onEquip: (id: string | null) => void
+  onBack: () => void
+}) {
+  const { profile } = props
+  return (
+    <main className="screen shop">
+      <h1 className="title">🛍️ 펫 상점</h1>
+      <p className="subtitle">🪙 {profile.coins} 코인 · 문제를 맞히면 코인이 쌓여요</p>
+
+      <button
+        className={`btn ghost ${profile.equipped === null ? 'selected' : ''}`}
+        onClick={() => props.onEquip(null)}
+      >
+        꾸미기 벗기
+      </button>
+
+      <div className="shop-grid">
+        {COSMETICS.map((c) => {
+          const owned = profile.cosmetics.includes(c.id)
+          const equipped = profile.equipped === c.id
+          const afford = profile.coins >= c.price
+          return (
+            <div key={c.id} className={`shop-item ${equipped ? 'equipped' : ''}`}>
+              <span className="shop-emoji">{c.emoji}</span>
+              <span className="shop-name">{c.name}</span>
+              {owned ? (
+                <button
+                  className={`btn ${equipped ? 'primary' : 'ghost'} shop-btn`}
+                  onClick={() => props.onEquip(c.id)}
+                >
+                  {equipped ? '착용 중' : '착용'}
+                </button>
+              ) : (
+                <button
+                  className="btn accent shop-btn"
+                  disabled={!afford}
+                  onClick={() => props.onBuy(c)}
+                >
+                  🪙 {c.price}
+                </button>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      <button className="btn ghost big" onClick={props.onBack}>
+        홈으로
+      </button>
+    </main>
+  )
+}
+
+// ── 일일 미션 ─────────────────────────────────────────────────────
+function Missions(props: {
+  profile: PlayerProfile
+  onClaim: (id: string, reward: number) => void
+  onBack: () => void
+}) {
+  const { daily } = props.profile
+  return (
+    <main className="screen missions">
+      <h1 className="title">🎯 오늘의 미션</h1>
+      <p className="subtitle">매일 0시에 새로워져요</p>
+
+      <ul className="mission-list">
+        {DAILY_MISSIONS.map((m) => {
+          const prog = missionProgress(m, daily)
+          const claimed = daily.claimed.includes(m.id)
+          const canClaim = missionClaimable(m, daily)
+          return (
+            <li key={m.id} className={`mission ${claimed ? 'done' : ''}`}>
+              <span className="mission-emoji">{m.emoji}</span>
+              <div className="mission-body">
+                <div className="mission-top">
+                  <span className="mission-name">{m.name}</span>
+                  <span className="mission-reward">🪙 {m.reward}</span>
+                </div>
+                <div className="mission-bar">
+                  <div
+                    className="mission-bar-fill"
+                    style={{ width: `${(prog / m.goal) * 100}%` }}
+                  />
+                </div>
+                <span className="mission-prog">
+                  {prog} / {m.goal}
+                </span>
+              </div>
+              <button
+                className={`btn ${canClaim ? 'primary' : 'ghost'} claim-btn`}
+                disabled={!canClaim}
+                onClick={() => props.onClaim(m.id, m.reward)}
+              >
+                {claimed ? '완료 ✔' : canClaim ? '받기' : '진행중'}
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+
+      <button className="btn ghost big" onClick={props.onBack}>
+        홈으로
+      </button>
+    </main>
+  )
+}
+
+// ── 랭킹 ──────────────────────────────────────────────────────────
+function Ranking(props: { profile: PlayerProfile; onBack: () => void }) {
+  const { rows, myRank } = leaderboard(props.profile)
+  return (
+    <main className="screen ranking">
+      <h1 className="title">🏆 랭킹</h1>
+      <p className="subtitle">최고 점수 기준 · 내 순위 {myRank}위</p>
+
+      <ul className="rank-list">
+        {rows.map((r, i) => (
+          <li key={r.name + i} className={`rank-row ${r.me ? 'me' : ''}`}>
+            <span className={`rank-no rank-${i + 1}`}>{i + 1}</span>
+            <span className="rank-name">{r.name}</span>
+            <span className="rank-score">{r.score}점</span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="rank-hint">친구와의 실시간 대전은 Firebase 연동 시 추가됩니다.</p>
       <button className="btn ghost big" onClick={props.onBack}>
         홈으로
       </button>

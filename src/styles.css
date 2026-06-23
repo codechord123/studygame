@@ -61,6 +61,15 @@ body {
   font-size: 30px;
   line-height: 1;
   animation: bob 2.4s ease-in-out infinite;
+  position: relative;
+  display: inline-block;
+}
+.pet-hat {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
 }
 @keyframes bob {
   50% {
@@ -448,6 +457,197 @@ body {
 }
 .submit {
   width: 100%;
+}
+
+/* home nav */
+.home-nav {
+  display: flex;
+  gap: 10px;
+}
+.nav-btn {
+  flex: 1;
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: 14px;
+  padding: 12px 6px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.nav-btn:active {
+  transform: scale(0.97);
+}
+.nav-emoji {
+  font-size: 22px;
+}
+.dot {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--bad);
+}
+
+/* shop */
+.btn.selected {
+  border-color: var(--accent);
+}
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.shop-item {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.shop-item.equipped {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.25);
+}
+.shop-emoji {
+  font-size: 34px;
+}
+.shop-name {
+  font-size: 12px;
+  color: var(--muted);
+}
+.shop-btn {
+  padding: 8px 10px;
+  font-size: 13px;
+  width: 100%;
+}
+
+/* missions */
+.mission-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.mission {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+.mission.done {
+  opacity: 0.65;
+}
+.mission-emoji {
+  font-size: 26px;
+}
+.mission-body {
+  flex: 1;
+  min-width: 0;
+}
+.mission-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 700;
+}
+.mission-reward {
+  color: var(--accent);
+}
+.mission-bar {
+  height: 8px;
+  background: #0c0e1c;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 6px 0 2px;
+}
+.mission-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary2));
+  transition: width 0.4s ease;
+}
+.mission-prog {
+  font-size: 11px;
+  color: var(--muted);
+}
+.claim-btn {
+  padding: 10px 12px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* ranking */
+.rank-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rank-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.rank-row.me {
+  border-color: var(--accent);
+  background: rgba(255, 209, 102, 0.1);
+}
+.rank-no {
+  flex: 0 0 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--bg2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+}
+.rank-1 {
+  background: #ffd166;
+  color: #3a2c00;
+}
+.rank-2 {
+  background: #c0c6e0;
+  color: #20243f;
+}
+.rank-3 {
+  background: #e08e5a;
+  color: #2a1500;
+}
+.rank-name {
+  flex: 1;
+  font-weight: 700;
+}
+.rank-score {
+  color: var(--muted);
+  font-weight: 700;
+}
+.rank-hint {
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 /* home badges */

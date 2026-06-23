@@ -1,12 +1,29 @@
 // 게임 요소: 포인트, 콤보(연속 정답 배수), 타이머 보너스, 레벨/경험치, 뱃지, 펫 성장.
 
+export interface DailyState {
+  date: string // YYYY-MM-DD (로컬)
+  solved: number // 오늘 푼 문제 수
+  bestCombo: number // 오늘 최고 콤보
+  claimed: string[] // 오늘 보상 받은 미션 id
+}
+
 export interface PlayerProfile {
   xp: number // 누적 경험치 (= 누적 포인트)
-  coins: number // 펫 꾸미기 등에 쓰는 재화
+  coins: number // 펫 꾸미기·상점 재화
   badges: string[] // 획득한 뱃지 id 목록
   bestCombo: number
   solvedCount: number
   correctCount: number
+  bestScore: number // 한 세트 최고 점수(정답률) — 랭킹용
+  cosmetics: string[] // 보유한 펫 꾸미기 id
+  equipped: string | null // 착용 중인 꾸미기 id
+  daily: DailyState
+}
+
+export function todayStr(d = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+    d.getDate(),
+  ).padStart(2, '0')}`
 }
 
 export const emptyProfile: PlayerProfile = {
@@ -16,6 +33,20 @@ export const emptyProfile: PlayerProfile = {
   bestCombo: 0,
   solvedCount: 0,
   correctCount: 0,
+  bestScore: 0,
+  cosmetics: [],
+  equipped: null,
+  daily: { date: todayStr(), solved: 0, bestCombo: 0, claimed: [] },
+}
+
+/** 저장된 프로필을 최신 스키마로 보정 + 날짜 바뀌면 일일 상태 초기화 */
+export function normalizeProfile(p: Partial<PlayerProfile> | null | undefined): PlayerProfile {
+  const merged: PlayerProfile = { ...emptyProfile, ...(p ?? {}) }
+  merged.daily = { ...emptyProfile.daily, ...(p?.daily ?? {}) }
+  if (merged.daily.date !== todayStr()) {
+    merged.daily = { date: todayStr(), solved: 0, bestCombo: 0, claimed: [] }
+  }
+  return merged
 }
 
 // ── 레벨 ──────────────────────────────────────────────────────────
