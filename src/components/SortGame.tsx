@@ -4,7 +4,7 @@ import type { GameResult } from './SpeedOxGame'
 import { GameFrame } from './GameFrame'
 import { useRaf } from '../lib/useRaf'
 import { computeScore } from '../game/gamification'
-import { playCorrect, playWrong, playCombo } from '../lib/sfx'
+import { playCorrect, playWrong, playCombo, playWhoosh } from '../lib/sfx'
 
 interface Props {
   problems: Problem[]
@@ -20,7 +20,7 @@ interface Bin {
 }
 
 const START_LIVES = 3
-const BIN_EMOJI = ['🟦', '🟨', '🟩']
+const BIN_EMOJI = ['🧺', '🗑️', '📦']
 
 function correctKey(p: Problem): string {
   if (p.type === 'ox') return p.answer ? 'O' : 'X'
@@ -28,7 +28,7 @@ function correctKey(p: Problem): string {
   return mc.choices[mc.answer]
 }
 
-// 떨어지는 항목 카드를 알맞은 '바구니'로 분류한다. 바구니는 한 판 내내 고정(안정적 범주).
+// 떨어지는 항목 카드를 좌우로 '조준'해 알맞은 바구니에 떨어뜨리는 아케이드 캐처.
 export function SortGame({ problems, theme, onComplete, onExit }: Props) {
   const items = problems
   const bins = useMemo<Bin[]>(() => {
@@ -48,6 +48,7 @@ export function SortGame({ problems, theme, onComplete, onExit }: Props) {
 
   const [qi, setQi] = useState(0)
   const [y, setY] = useState(0)
+  const [x, setX] = useState(50) // 카드 가로 위치(%)
   const [lives, setLives] = useState(START_LIVES)
   const [combo, setCombo] = useState(0)
   const [gained, setGained] = useState(0)
@@ -56,28 +57,34 @@ export function SortGame({ problems, theme, onComplete, onExit }: Props) {
 
   const fxKey = useRef(0)
   const yRef = useRef(0)
+  const xRef = useRef(50)
   const speedRef = useRef(20)
   const comboRef = useRef(0)
   const gainedRef = useRef(0)
   const livesRef = useRef(START_LIVES)
   const resultsRef = useRef<GameResult[]>([])
   const lockRef = useRef(false)
+  const draggingRef = useRef(false)
+  const fieldRef = useRef<HTMLDivElement | null>(null)
 
   const problem = items[qi]
   const playable = items.length >= 2 && bins.length >= 2
   const active = playable && !flash && !!problem && livesRef.current > 0
 
+  // 카드 x(드래그 범위 30~70%) → 바구니 인덱스로 균등 매핑
+  const binFromX = (px: number) =>
+    Math.max(0, Math.min(bins.length - 1, Math.floor(((px - 30) / 40.0001) * bins.length)))
+  const aimIdx = binFromX(x)
+
   useRaf(active, (dt) => {
-    // 매 프레임 낙하 — dt(초) 기반이라 화면 주사율과 무관
     yRef.current += speedRef.current * dt
     if (yRef.current >= 100) {
-      resolve(null) // 바닥에 닿음 = 놓침
+      resolve(bins[binFromX(xRef.current)].key) // 바닥 도달 = 조준한 바구니로 투입
       return
     }
     setY(yRef.current)
   })
 
-  // 분류 불가능한 단원: 즉시 종료 (Empty State 방어)
   if (!playable) {
     if (!lockRef.current) {
       lockRef.current = true
@@ -90,9 +97,19 @@ export function SortGame({ problems, theme, onComplete, onExit }: Props) {
     )
   }
 
+  function steer(clientX: number) {
+    const el = fieldRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const pct = Math.max(30, Math.min(70, ((clientX - r.left) / r.width) * 100))
+    xRef.current = pct
+    setX(pct)
+  }
+
   function resolve(binKey: string | null) {
     if (lockRef.current || !problem) return
     lockRef.current = true
+    draggingRef.current = false
     const want = correctKey(problem)
     const ok = binKey != null && binKey === want
     let pts = 0
@@ -100,7 +117,7 @@ export function SortGame({ problems, theme, onComplete, onExit }: Props) {
       comboRef.current += 1
       pts = computeScore({ basePoints: problem.points, combo: comboRef.current })
       gainedRef.current += pts
-      speedRef.current = Math.min(34, speedRef.current + 1.5)
+      speedRef.current = Math.min(36, speedRef.current + 1.6)
       fxKey.current += 1
       setFx({ key: fxKey.current, pts, tag: comboRef.current >= 2 ? `🔥 ${comboRef.current} 연속` : null })
       comboRef.current >= 2 ? playCombo(comboRef.current) : playCorrect()
@@ -123,6 +140,8 @@ export function SortGame({ problems, theme, onComplete, onExit }: Props) {
       }
       yRef.current = 0
       setY(0)
+      xRef.current = 50
+      setX(50)
       setFlash(null)
       setFx(null)
       setQi(qi + 1)
@@ -131,6 +150,7 @@ export function SortGame({ problems, theme, onComplete, onExit }: Props) {
   }
 
   const solved = resultsRef.current.length
+  const tilt = (x - 50) * 0.3 // 조준 방향으로 살짝 기울기
 
   return (
     <GameFrame
@@ -141,11 +161,25 @@ export function SortGame({ problems, theme, onComplete, onExit }: Props) {
       combo={combo}
       lives={lives}
     >
-      <p className="sort-hint">💎 {gained} · 카드를 알맞은 바구니로 옮겨요!</p>
+      <p className="sort-hint">💎 {gained} · 카드를 끌어 알맞은 바구니 위로!</p>
 
-      <div className={`sort-field ${!flash && y > 72 ? 'danger' : ''}`}>
+      <div
+        ref={fieldRef}
+        className={`sort-arena ${!flash && y > 70 ? 'danger' : ''}`}
+        onPointerDown={(e) => { if (!flash) { draggingRef.current = true; steer(e.clientX) } }}
+        onPointerMove={(e) => { if (draggingRef.current) steer(e.clientX) }}
+        onPointerUp={() => { draggingRef.current = false }}
+        onPointerLeave={() => { draggingRef.current = false }}
+      >
+        <div className="bt-stars" aria-hidden />
+        {/* 조준선 */}
+        {!flash && <div className="sort-aim" style={{ left: `${x}%` }} aria-hidden />}
+
         {!flash && problem && (
-          <div className={`sort-item ${y > 72 ? 'urgent' : ''}`} style={{ top: `${y}%` }}>
+          <div
+            className={`sort-item ${y > 70 ? 'urgent' : ''}`}
+            style={{ top: `${y}%`, left: `${x}%`, transform: `translateX(-50%) rotate(${tilt}deg)` }}
+          >
             {problem.prompt.replace(/\{\{\d+\}\}/g, '___')}
           </div>
         )}
@@ -163,17 +197,21 @@ export function SortGame({ problems, theme, onComplete, onExit }: Props) {
       </div>
 
       <div className="sort-bins" data-n={bins.length}>
-        {bins.map((b, i) => (
-          <button
-            key={b.key}
-            className={`sort-bin bin-${i} ${flash && flash.key === b.key ? (flash.ok ? 'hit-ok' : 'hit-no') : ''}`}
-            disabled={!!flash}
-            onClick={() => resolve(b.key)}
-          >
-            <span className="bin-emoji">{b.emoji}</span>
-            <span className="bin-label">{b.label}</span>
-          </button>
-        ))}
+        {bins.map((b, i) => {
+          const aiming = !flash && i === aimIdx
+          const hit = flash && flash.key === b.key
+          return (
+            <button
+              key={b.key}
+              className={`sort-bin bin-${i} ${aiming ? 'aim' : ''} ${hit ? (flash!.ok ? 'hit-ok' : 'hit-no') : ''}`}
+              disabled={!!flash}
+              onPointerDown={() => { playWhoosh(); resolve(b.key) }}
+            >
+              <span className="bin-emoji">{b.emoji}</span>
+              <span className="bin-label">{b.label}</span>
+            </button>
+          )
+        })}
       </div>
     </GameFrame>
   )
