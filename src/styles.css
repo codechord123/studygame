@@ -183,7 +183,7 @@ body {
   font-size: 16px;
   font-weight: 800;
   cursor: pointer;
-  color: #fff;
+  color: var(--ink);
   background: var(--surface-2);
   transition: transform 0.06s ease, filter 0.15s ease, box-shadow 0.06s ease;
 }
@@ -196,16 +196,17 @@ body {
   cursor: not-allowed;
 }
 .btn.primary {
-  background: var(--primary);
-  box-shadow: 0 5px 0 #5b21b6, 0 10px 18px rgba(91, 33, 182, 0.4);
+  color: #fff;
+  background: linear-gradient(180deg, #a06bff, #7c3aed);
+  box-shadow: 0 5px 0 #5b21b6, 0 10px 22px rgba(157, 92, 255, 0.5);
 }
 .btn.primary:active {
   box-shadow: 0 2px 0 #5b21b6, 0 6px 12px rgba(91, 33, 182, 0.35);
 }
 .btn.ghost {
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.16);
   color: var(--on-bg);
-  border: 2px solid rgba(255, 255, 255, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.55);
 }
 .btn.accent {
   background: var(--accent);
@@ -216,6 +217,7 @@ body {
   box-shadow: 0 2px 0 #d99a00;
 }
 .btn.challenge {
+  color: #fff;
   background: #ff4d6d;
   box-shadow: 0 5px 0 #c81e4f, 0 10px 18px rgba(255, 77, 109, 0.4);
 }
