@@ -147,6 +147,7 @@ interface SessionState {
   miniGameId?: string // 선택한 미니게임 (battle 연출 등)
   lives?: number // 차근차근 학습 생명(찍기 방지). undefined면 생명 제한 없음
   gameOver?: boolean // 생명 소진으로 일찍 종료됐는지
+  returnTo?: Screen // 나가기 시 돌아갈 화면(직전 화면)
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -267,6 +268,7 @@ export default function App() {
       wrong: [],
       masteryUpdates: {},
       lives,
+      returnTo: screen === 'quiz' || screen === 'result' ? 'home' : screen, // 시작 직전 화면 기억
     })
     setEarnedBadges([])
     setScreen('quiz')
@@ -283,9 +285,10 @@ export default function App() {
   }
 
   function exitQuiz() {
-    if (window.confirm('지금 나가면 이번 풀이는 저장되지 않아요. 마을로 돌아갈까요?')) {
+    const back = session?.returnTo ?? 'home'
+    if (window.confirm('지금 나가면 이번 풀이는 저장되지 않아요. 나갈까요?')) {
       setSession(null)
-      setScreen('home')
+      setScreen(back)
     }
   }
 
