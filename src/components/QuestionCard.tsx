@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Problem } from '../types/problem'
 import { gradeProblem, correctAnswerText } from '../lib/grading'
+import { computeScore } from '../game/gamification'
 import { playCorrect, playWrong } from '../lib/sfx'
 
 export type PlayMode = 'study' | 'challenge'
@@ -35,6 +36,8 @@ export function QuestionCard({ problem, index, total, combo, mode, onSubmit, onE
   const [submitted, setSubmitted] = useState(false)
   const [result, setResult] = useState<ReturnType<typeof gradeProblem> | null>(null)
   const [timeLeft, setTimeLeft] = useState(timeLimit)
+  /** 정답 시 화면에 떠오르는 획득 점수(연출용) */
+  const [gain, setGain] = useState<number | null>(null)
   const pendingRef = useRef<{ correct: boolean; responses: string[]; timeLeftRatio: number } | null>(
     null,
   )
@@ -46,6 +49,7 @@ export function QuestionCard({ problem, index, total, combo, mode, onSubmit, onE
     setPicked(null)
     setSubmitted(false)
     setResult(null)
+    setGain(null)
     setTimeLeft(timeLimit)
     pendingRef.current = null
     advancedRef.current = false
@@ -89,6 +93,10 @@ export function QuestionCard({ problem, index, total, combo, mode, onSubmit, onE
     else playWrong()
     const timeLeftRatio = timeLimit ? Math.max(0, timeLeft) / timeLimit : 0
     pendingRef.current = { correct: r.correct, responses: resp, timeLeftRatio }
+    if (r.correct) {
+      // 이 정답으로 콤보가 1 오른다 → 그 콤보 기준 점수를 미리보기로 띄움
+      setGain(computeScore({ basePoints: problem.points, combo: combo + 1, timeLeftRatio }))
+    }
     // 도전 모드에서 정답이면 잠깐 보여주고 자동 진행. 그 외(오답·학습 모드,
     // autoAdvance=false)는 "다음" 버튼을 눌러야 넘어간다 — 풀이를 충분히 읽도록.
     if (autoAdvance && mode === 'challenge' && r.correct) {
@@ -104,6 +112,12 @@ export function QuestionCard({ problem, index, total, combo, mode, onSubmit, onE
 
   return (
     <div className={`card question-card ${theme ?? ''}`}>
+      {gain != null && (
+        <div className="score-burst" aria-hidden>
+          <span className="score-burst-pts">+{gain}</span>
+          {combo + 1 >= 2 && <span className="score-burst-combo">🔥 {combo + 1} COMBO</span>}
+        </div>
+      )}
       <div className="q-meta">
         {onExit && (
           <button className="q-exit" onClick={onExit} title="마을로 나가기">
@@ -113,7 +127,11 @@ export function QuestionCard({ problem, index, total, combo, mode, onSubmit, onE
         <span className="q-progress">
           {index + 1} / {total}
         </span>
-        {combo >= 2 && <span className="combo-chip">🔥 {combo} COMBO</span>}
+        {combo >= 2 && (
+          <span key={combo} className="combo-chip">
+            🔥 {combo} COMBO
+          </span>
+        )}
         {timeLimit > 0 && (
           <span className={`timer ${timeLeft <= 5 ? 'danger' : ''}`}>⏱ {timeLeft}s</span>
         )}

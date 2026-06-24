@@ -2020,8 +2020,22 @@ function Result(props: {
   const { session } = props
   const acc = Math.round((session.correct / session.problems.length) * 100)
   const stars = acc >= 90 ? 3 : acc >= 60 ? 2 : acc >= 30 ? 1 : 0
+  // 점수 카운트업 연출 (0 → acc)
+  const [shown, setShown] = useState(0)
   useEffect(() => {
     if (stars >= 1) playWin()
+    const dur = 900
+    let raf = 0
+    let start = 0
+    const tick = (t: number) => {
+      if (!start) start = t
+      const p = Math.min(1, (t - start) / dur)
+      const eased = 1 - Math.pow(1 - p, 3)
+      setShown(Math.round(acc * eased))
+      if (p < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   return (
@@ -2041,7 +2055,7 @@ function Result(props: {
           </span>
         ))}
       </div>
-      <div className="result-big">{acc}점</div>
+      <div className="result-big">{shown}점</div>
       <p>
         {session.problems.length}문제 중 <b>{session.correct}</b>개 정답 · 최고{' '}
         <b>🔥 {session.bestCombo}</b> 콤보 (x{comboMultiplier(session.bestCombo).toFixed(1)})

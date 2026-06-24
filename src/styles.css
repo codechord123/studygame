@@ -408,11 +408,62 @@ body {
   box-shadow: var(--sh-card);
 }
 .question-card {
+  position: relative;
   margin-top: 18px;
   display: flex;
   flex-direction: column;
   gap: 14px;
   animation: slidein 0.25s ease;
+}
+/* 정답 시 떠오르는 점수 버스트 */
+.score-burst {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  animation: scoreBurst 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.score-burst-pts {
+  font-size: 52px;
+  font-weight: 900;
+  color: var(--good);
+  text-shadow: 0 3px 0 #fff, 0 6px 16px rgba(36, 163, 90, 0.45);
+}
+.score-burst-combo {
+  background: linear-gradient(90deg, #ff9a3c, #ff5e62);
+  color: #fff;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 900;
+  box-shadow: 0 3px 10px rgba(255, 94, 98, 0.5);
+}
+@keyframes scoreBurst {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(14px) scale(0.4);
+  }
+  22% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1.12);
+  }
+  38% {
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  78% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-14px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-52px) scale(0.92);
+  }
 }
 @keyframes slidein {
   from {
@@ -457,7 +508,7 @@ body {
 }
 .timer-bar {
   height: 6px;
-  background: #0c0e1c;
+  background: var(--surface-3, #e7e2f5);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -3310,6 +3361,20 @@ body {
   font-size: 56px;
   font-weight: 900;
   color: var(--accent);
+  animation: resultPop 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.36s backwards;
+}
+@keyframes resultPop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 .gained {
   font-size: 20px;
