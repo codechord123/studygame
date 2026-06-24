@@ -5,7 +5,7 @@ import { GameFrame } from './GameFrame'
 import { CountdownIntro } from './CountdownIntro'
 import { useRaf } from '../lib/useRaf'
 import { computeScore } from '../game/gamification'
-import { playCorrect, playWrong, playCombo, playWhoosh } from '../lib/sfx'
+import { playCorrect, playWrong, playCombo, playWhoosh, vibrate } from '../lib/juice'
 
 interface Props {
   problems: Problem[]
@@ -123,11 +123,13 @@ export function SortGame({ problems, theme, onComplete, onExit }: Props) {
       fxKey.current += 1
       setFx({ key: fxKey.current, pts, tag: comboRef.current >= 2 ? `🔥 ${comboRef.current} 연속` : null })
       comboRef.current >= 2 ? playCombo(comboRef.current) : playCorrect()
+      vibrate(20)
     } else {
       comboRef.current = 0
       livesRef.current -= 1
       speedRef.current = Math.max(18, speedRef.current - 1)
       playWrong()
+      vibrate([40, 30, 40])
     }
     setCombo(comboRef.current)
     setGained(gainedRef.current)

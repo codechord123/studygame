@@ -2,8 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Problem } from '../types/problem'
 import { gradeProblem, correctAnswerText } from '../lib/grading'
 import { computeScore } from '../game/gamification'
-import { playCorrect, playWrong } from '../lib/sfx'
-import { vibrate } from '../lib/juice'
+import { playCorrect, playWrong, vibrate } from '../lib/juice'
 
 export type PlayMode = 'study' | 'challenge'
 

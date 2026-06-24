@@ -17,7 +17,7 @@ import {
   SEED_CHEERS,
   type GuestEntry,
 } from '../game/guestbook'
-import { playStep, playBlip, isMuted, setMuted } from '../lib/sfx'
+import { playStep, playBlip, isMuted, setMuted } from '../lib/juice'
 import type { PlayMode } from './QuestionCard'
 
 // 걸어다니는 마을 맵: 이동·상호작용·살아있는 NPC·낮밤/계절/축제·친구 집 방문.

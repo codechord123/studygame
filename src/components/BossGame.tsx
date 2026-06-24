@@ -7,8 +7,8 @@ import { Monster, type MonsterMood } from './battle/Monster'
 import { computeScore } from '../game/gamification'
 import { useRaf } from '../lib/useRaf'
 import {
-  playWrong, playBomb, playHit, playCrit, playVictory, playDefeat, playTick, playGo,
-} from '../lib/sfx'
+  playWrong, playBomb, playHit, playCrit, playVictory, playDefeat, playTick, playGo, vibrate,
+} from '../lib/juice'
 
 interface Props {
   problems: Problem[]
@@ -131,6 +131,7 @@ export function BossGame({ problems, theme, avatar = '🧙', onComplete, onExit 
         setBurst((b) => b + 1)
         setFx({ key: fxKey.current, pts, crit })
         crit ? playCrit() : playHit()
+        vibrate(crit ? [30, 20, 50] : 20)
         window.setTimeout(() => { setMood('idle'); setHpHit(false) }, 420)
       }, 280)
     } else {
@@ -138,6 +139,7 @@ export function BossGame({ problems, theme, avatar = '🧙', onComplete, onExit 
       playerHpRef.current -= 1
       setMood('charge')
       idx === -1 ? playBomb() : playWrong()
+      vibrate([40, 30, 40])
       window.setTimeout(() => {
         setMood('attack')
         setShake(true)

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { playTick, playGo } from '../lib/sfx'
+import { playTick, playGo } from '../lib/juice'
 
 interface Props {
   onDone: () => void

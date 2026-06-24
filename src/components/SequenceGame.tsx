@@ -5,7 +5,7 @@ import { GameFrame } from './GameFrame'
 import { TimerRing } from './TimerRing'
 import { computeScore } from '../game/gamification'
 import { useRaf } from '../lib/useRaf'
-import { playCorrect, playWrong, playCombo, playWhoosh, playPop } from '../lib/sfx'
+import { playCorrect, playWrong, playCombo, playWhoosh, playPop, vibrate } from '../lib/juice'
 
 interface Props {
   problems: Problem[]
@@ -125,6 +125,7 @@ export function SequenceGame({ problems, theme, onComplete, onExit }: Props) {
       fxKey.current += 1
       setFx({ key: fxKey.current, pts, tag: comboRef.current >= 2 ? `🔥 ${comboRef.current} 연속` : null })
       comboRef.current >= 2 ? playCombo(comboRef.current) : playCorrect()
+      vibrate(20)
     } else {
       comboRef.current = 0
       livesRef.current -= 1
@@ -133,6 +134,7 @@ export function SequenceGame({ problems, theme, onComplete, onExit }: Props) {
       setShake(true)
       window.setTimeout(() => setShake(false), 420)
       playWrong()
+      vibrate([40, 30, 40])
     }
     setCombo(comboRef.current)
     setGained(gainedRef.current)

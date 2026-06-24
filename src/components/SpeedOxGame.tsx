@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import type { Problem } from '../types/problem'
 import { correctAnswerText } from '../lib/grading'
-import { playCorrect, playWrong, playCombo, playBomb } from '../lib/sfx'
+import { playCorrect, playWrong, playCombo, playBomb, vibrate } from '../lib/juice'
 import { computeScore } from '../game/gamification'
 import { useRaf } from '../lib/useRaf'
 import { GameFrame } from './GameFrame'
@@ -113,6 +113,7 @@ export function SpeedOxGame({ problems, theme, avatar = '🐱', onComplete, onEx
       setFx({ key: fxKey.current, pts, tag })
       setFlash('good')
       streakRef.current >= 2 ? playCombo(streakRef.current) : playCorrect()
+      vibrate(20)
     } else {
       streakRef.current = 0
       livesRef.current -= 1
@@ -120,6 +121,7 @@ export function SpeedOxGame({ problems, theme, avatar = '🐱', onComplete, onEx
       window.setTimeout(() => setLifeLost(false), 500)
       setFlash('bad')
       o === null ? playBomb() : playWrong()
+      vibrate([40, 30, 40])
     }
     setStreak(streakRef.current)
     setLives(livesRef.current)

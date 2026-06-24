@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import type { Problem } from '../types/problem'
 import { correctAnswerText } from '../lib/grading'
-import { playPop, playWrong, playCombo, playFlip } from '../lib/sfx'
+import { playPop, playWrong, playCombo, playFlip, vibrate } from '../lib/juice'
 import { computeScore } from '../game/gamification'
 import { useRaf } from '../lib/useRaf'
 import { GameFrame } from './GameFrame'
@@ -97,6 +97,7 @@ export function MemoryGame({ problems, theme, onComplete, onExit }: Props) {
         comboRef.current += 1
         const pts = computeScore({ basePoints: a.points, combo: comboRef.current })
         comboRef.current >= 2 ? playCombo(comboRef.current) : playPop()
+        vibrate(20)
         const m = new Set(matched).add(a.pid)
         fxKey.current += 1
         setFx({ key: fxKey.current, pts, tag: comboRef.current >= 2 ? `🔥 ${comboRef.current} 연속` : null })
@@ -112,6 +113,7 @@ export function MemoryGame({ problems, theme, onComplete, onExit }: Props) {
       } else {
         // 실패 → 콤보 끊김, 관련 문제 missed 표시
         playWrong()
+        vibrate([40, 30, 40])
         comboRef.current = 0
         setCombo(0)
         setShake(true)
