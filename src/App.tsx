@@ -742,6 +742,7 @@ export default function App() {
             <BossGame
               problems={session.problems}
               theme={theme}
+              avatar={profile.avatar}
               onComplete={(res) => finishFromResults(session.problems, res, villager, session.miniGameId)}
               onExit={exitQuiz}
             />

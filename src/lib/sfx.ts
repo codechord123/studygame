@@ -113,3 +113,59 @@ export function playBomb() {
 export function playWin() {
   ;[523, 659, 784, 1046].forEach((f, i) => tone(f, i * 0.12, 0.2, 'triangle', 0.15))
 }
+
+// ── 확장 효과음 (게임 퀄리티 강화) ─────────────────────────────────
+/** 카운트다운 똑 — 짧고 또렷한 단음 */
+export function playTick() {
+  tone(880, 0, 0.07, 'triangle', 0.1)
+}
+/** 시작 신호 — 똑 다음에 터지는 밝은 상승음 */
+export function playGo() {
+  tone(660, 0, 0.1, 'triangle', 0.14)
+  tone(990, 0.08, 0.22, 'triangle', 0.15)
+}
+/** 레벨업 — 4음 상승 팡파르 */
+export function playLevelUp() {
+  ;[523, 659, 784, 1046].forEach((f, i) => tone(f, i * 0.09, 0.16, 'triangle', 0.14))
+  tone(1318, 0.36, 0.24, 'sine', 0.12)
+}
+/** 업적 반짝 — 맑은 두 음 + 하이 스파클 */
+export function playBadge() {
+  tone(1046, 0, 0.1, 'sine', 0.11)
+  tone(1568, 0.07, 0.14, 'sine', 0.1)
+  tone(2093, 0.14, 0.18, 'sine', 0.07)
+}
+/** 카드 뒤집기 — 빠른 휙 상승 틱 */
+export function playFlip() {
+  tone(420, 0, 0.05, 'triangle', 0.08)
+  tone(760, 0.04, 0.08, 'triangle', 0.09)
+}
+/** 분류 휙 — 부드럽게 스쳐 지나가는 휘파람 */
+export function playWhoosh() {
+  tone(300, 0, 0.07, 'sine', 0.06)
+  tone(600, 0.05, 0.09, 'sine', 0.08)
+  tone(900, 0.1, 0.1, 'sine', 0.05)
+}
+/** 타격 — 짧고 단단한 펀치 */
+export function playHit() {
+  tone(180, 0, 0.08, 'square', 0.13)
+  tone(120, 0.04, 0.12, 'sawtooth', 0.1)
+}
+/** 크리티컬 강타 — 둔탁한 임팩트 위에 번쩍이는 고음 */
+export function playCrit() {
+  tone(160, 0, 0.12, 'sawtooth', 0.16)
+  tone(90, 0.05, 0.16, 'square', 0.13)
+  tone(1320, 0.02, 0.1, 'triangle', 0.1)
+  tone(1760, 0.1, 0.14, 'triangle', 0.08)
+}
+/** 패배 — 풀죽은 하강음 */
+export function playDefeat() {
+  ;[523, 440, 349, 262].forEach((f, i) => tone(f, i * 0.13, 0.22, 'triangle', 0.12))
+}
+/** 승리 — playWin 보다 큰 팡파르 (5음 상승 + 하이 트릴) */
+export function playVictory() {
+  ;[523, 659, 784, 1046, 1318].forEach((f, i) => tone(f, i * 0.11, 0.22, 'triangle', 0.16))
+  tone(1046, 0.62, 0.12, 'triangle', 0.14)
+  tone(1318, 0.74, 0.12, 'triangle', 0.14)
+  tone(1568, 0.86, 0.3, 'triangle', 0.15)
+}

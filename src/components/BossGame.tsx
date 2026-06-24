@@ -3,36 +3,30 @@ import type { Problem, MultipleChoiceProblem } from '../types/problem'
 import type { GameResult } from './SpeedOxGame'
 import { GameFrame } from './GameFrame'
 import { TimerRing } from './TimerRing'
+import { Monster, type MonsterMood } from './battle/Monster'
 import { computeScore } from '../game/gamification'
 import { useRaf } from '../lib/useRaf'
-import { playCorrect, playWrong, playCombo, playBomb } from '../lib/sfx'
+import {
+  playWrong, playBomb, playHit, playCrit, playVictory, playDefeat, playTick, playGo,
+} from '../lib/sfx'
 
 interface Props {
   problems: Problem[]
   theme?: string
+  avatar?: string
   onComplete: (results: GameResult[]) => void
   onExit?: () => void
 }
 
 const PLAYER_HP = 3
 const PER_SEC = 14
-const CRIT_AT = 3 // 콤보 3 이상이면 크리티컬(2배 데미지)
+const CRIT_AT = 3 // 콤보 3 이상 크리티컬(2배 데미지)
 
-function bossFace(ratio: number): string {
-  if (ratio > 0.66) return '👹'
-  if (ratio > 0.33) return '👺'
-  if (ratio > 0) return '😈'
-  return '💥'
-}
+interface Flash { ok: boolean; crit: boolean; dmg: number; answer: number }
+interface Fx { key: number; pts: number; crit: boolean }
 
-interface Fx {
-  key: number
-  pts: number
-  crit: boolean
-}
-
-// 정답으로 보스에게 데미지, 콤보로 크리티컬, 오답/시간초과는 보스의 반격(생명 감소).
-export function BossGame({ problems, theme, onComplete, onExit }: Props) {
+// ⚔️ 마법 배틀 — 정답으로 마법 공격, 콤보로 크리티컬, 오답/시간초과는 보스의 반격.
+export function BossGame({ problems, theme, avatar = '🧙', onComplete, onExit }: Props) {
   const mcs = useMemo(
     () => problems.filter((p): p is MultipleChoiceProblem => p.type === 'multiple_choice'),
     [problems],
@@ -45,11 +39,17 @@ export function BossGame({ problems, theme, onComplete, onExit }: Props) {
   const [gained, setGained] = useState(0)
   const [t, setT] = useState(PER_SEC)
   const [picked, setPicked] = useState<number | null>(null)
-  const [flash, setFlash] = useState<null | { ok: boolean; crit: boolean; dmg: number; answer: number }>(null)
+  const [flash, setFlash] = useState<Flash | null>(null)
+  const [fx, setFx] = useState<Fx | null>(null)
+  const [mood, setMood] = useState<MonsterMood>('idle')
   const [shake, setShake] = useState(false)
   const [hpHit, setHpHit] = useState(false)
-  const [attack, setAttack] = useState(false)
-  const [fx, setFx] = useState<Fx | null>(null)
+  const [casting, setCasting] = useState(0) // 발사체 트리거 key
+  const [burst, setBurst] = useState(0) // 타격 파티클 트리거 key
+  const [burstCrit, setBurstCrit] = useState(false)
+  const [ending, setEnding] = useState<null | 'win' | 'lose'>(null)
+  const [count, setCount] = useState(3) // 3,2,1,0(FIGHT)
+  const [armed, setArmed] = useState(false)
 
   const bossHpRef = useRef(maxHp)
   const playerHpRef = useRef(PLAYER_HP)
@@ -66,6 +66,24 @@ export function BossGame({ problems, theme, onComplete, onExit }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // 시작 카운트다운 3 → 2 → 1 → FIGHT!
+  useEffect(() => {
+    if (mcs.length === 0) return
+    const seq = [3, 2, 1, 0]
+    let i = 0
+    let id: number
+    const tick = () => {
+      setCount(seq[i])
+      seq[i] === 0 ? playGo() : playTick()
+      if (seq[i] === 0) { id = window.setTimeout(() => setArmed(true), 550); return }
+      i++
+      id = window.setTimeout(tick, 600)
+    }
+    id = window.setTimeout(tick, 250)
+    return () => window.clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // 문제 바뀌면 타이머 리셋
   useEffect(() => {
     if (!problem) return
@@ -75,8 +93,8 @@ export function BossGame({ problems, theme, onComplete, onExit }: Props) {
     setT(PER_SEC)
   }, [qi, problem])
 
-  // 부드러운 제한 시간 (풀이 중에만)
-  const ticking = !!problem && !flash
+  // 부드러운 제한 시간 (전투 중에만)
+  const ticking = armed && !!problem && !flash && !ending
   useRaf(ticking, (dt) => {
     tRef.current -= dt
     if (tRef.current <= 0) {
@@ -89,12 +107,13 @@ export function BossGame({ problems, theme, onComplete, onExit }: Props) {
   })
 
   function answer(idx: number) {
-    if (lockRef.current || !problem) return
+    if (lockRef.current || !problem || !armed || ending) return
     lockRef.current = true
     setPicked(idx)
     const ok = idx === problem.answer
     let dmg = 0
     let crit = false
+
     if (ok) {
       comboRef.current += 1
       crit = comboRef.current >= CRIT_AT
@@ -103,18 +122,28 @@ export function BossGame({ problems, theme, onComplete, onExit }: Props) {
       const pts = computeScore({ basePoints: problem.points, combo: comboRef.current })
       gainedRef.current += pts
       fxKey.current += 1
-      setFx({ key: fxKey.current, pts, crit })
-      setHpHit(true)
-      window.setTimeout(() => setHpHit(false), 420)
-      crit ? playCombo(comboRef.current) : playCorrect()
+      setCasting((c) => c + 1) // 마법 발사
+      // 발사체가 도착할 즈음 타격 연출
+      window.setTimeout(() => {
+        setMood('hurt')
+        setHpHit(true)
+        setBurstCrit(crit)
+        setBurst((b) => b + 1)
+        setFx({ key: fxKey.current, pts, crit })
+        crit ? playCrit() : playHit()
+        window.setTimeout(() => { setMood('idle'); setHpHit(false) }, 420)
+      }, 280)
     } else {
       comboRef.current = 0
       playerHpRef.current -= 1
-      setShake(true)
-      setAttack(true)
-      window.setTimeout(() => setShake(false), 400)
-      window.setTimeout(() => setAttack(false), 500)
+      setMood('charge')
       idx === -1 ? playBomb() : playWrong()
+      window.setTimeout(() => {
+        setMood('attack')
+        setShake(true)
+        window.setTimeout(() => setShake(false), 420)
+        window.setTimeout(() => setMood('idle'), 420)
+      }, 240)
     }
     setBossHp(bossHpRef.current)
     setPlayerHp(playerHpRef.current)
@@ -126,14 +155,13 @@ export function BossGame({ problems, theme, onComplete, onExit }: Props) {
     window.setTimeout(() => {
       const win = bossHpRef.current <= 0
       const dead = playerHpRef.current <= 0
-      if (win || dead || qi + 1 >= mcs.length) {
-        onComplete(resultsRef.current)
-        return
-      }
+      if (win) { setMood('dead'); setEnding('win'); playVictory(); return }
+      if (dead) { setEnding('lose'); playDefeat(); return }
+      if (qi + 1 >= mcs.length) { onComplete(resultsRef.current); return }
       setFlash(null)
       setFx(null)
       setQi(qi + 1)
-    }, 1050)
+    }, 1100)
   }
 
   if (!problem) return null
@@ -145,7 +173,7 @@ export function BossGame({ problems, theme, onComplete, onExit }: Props) {
       theme={theme}
       className={`boss-game ${shake ? 'shake' : ''}`}
       onExit={onExit}
-      progress={`${qi + 1} / ${mcs.length}`}
+      progress={`${Math.min(qi + 1, mcs.length)} / ${mcs.length}`}
       headerExtra={
         <>
           {combo >= 2 && <span className={`combo-chip ${comboTier}`}>🔥 {combo} COMBO</span>}
@@ -154,26 +182,73 @@ export function BossGame({ problems, theme, onComplete, onExit }: Props) {
         </>
       }
     >
-      {fx && (
-        <div key={fx.key} className={`fx-pop ${fx.crit ? 'crit' : ''}`} aria-hidden>
-          <span className="fx-pts">{fx.crit ? `CRIT +${fx.pts}` : `+${fx.pts}`}</span>
+      {/* ── 배틀 아레나 ── */}
+      <div className={`battle-scene ${ending ? `end-${ending}` : ''}`}>
+        <div className="bt-stars" aria-hidden />
+        {/* 보스 */}
+        <div className="bt-boss-wrap">
+          <div className="boss-hpbar">
+            <div className={`boss-hpbar-fill ${hpHit ? 'hit' : ''}`} style={{ width: `${hpRatio * 100}%` }} />
+            <span className="boss-hpbar-text">BOSS {bossHp}/{maxHp}</span>
+          </div>
+          <div className="bt-monster">
+            <Monster hpRatio={hpRatio} mood={mood} />
+            {burst > 0 && (
+              <div key={burst} className={`impact ${burstCrit ? 'crit' : ''}`} aria-hidden>
+                {Array.from({ length: 8 }, (_, i) => (
+                  <span key={i} className="spark" style={{ ['--a' as string]: `${i * 45}deg` }} />
+                ))}
+                <span className="impact-ring" />
+              </div>
+            )}
+            {fx && (
+              <div key={fx.key} className={`dmg-pop ${fx.crit ? 'crit' : ''}`} aria-hidden>
+                {fx.crit ? `CRITICAL! +${fx.pts}` : `+${fx.pts}`}
+              </div>
+            )}
+            {ending === 'win' && (
+              <div className="boom" aria-hidden>
+                {Array.from({ length: 12 }, (_, i) => (
+                  <span key={i} className="boom-bit" style={{ ['--a' as string]: `${i * 30}deg` }} />
+                ))}
+                <span className="boom-flash">💥</span>
+              </div>
+            )}
+          </div>
         </div>
-      )}
-      <div className="boss-stage">
-        <div className={`boss-face ${flash?.ok ? 'hurt' : ''} ${attack ? 'attack' : ''}`}>
-          {bossFace(hpRatio)}
+
+        {/* 영웅 + 발사체 */}
+        <div className={`bt-hero ${casting ? 'cast' : ''}`}>
+          <span className="hero-avatar">{avatar}</span>
+          <span className="hero-base" />
         </div>
-        <div className={`boss-hp ${hpHit ? 'hit' : ''}`}>
-          <div className="boss-hp-fill" style={{ width: `${hpRatio * 100}%` }} />
-          <span className="boss-hp-text">{bossHp} / {maxHp}</span>
-        </div>
-        {flash && (
-          <div className={`boss-dmg ${flash.ok ? (flash.crit ? 'crit' : 'hit') : 'block'}`}>
-            {flash.ok ? (flash.crit ? `CRITICAL! -${flash.dmg}` : `-${flash.dmg}`) : '반격! 💢'}
+        {casting > 0 && !ending && <span key={casting} className="spell-orb" aria-hidden />}
+
+        {/* 종료 배너 */}
+        {ending === 'win' && (
+          <div className="bt-banner win">
+            <div className="bt-banner-title">VICTORY!</div>
+            <div className="bt-banner-sub">💎 {gained} 획득 · 🔥 최고 {combo} 콤보</div>
+            <button className="btn primary" onClick={() => onComplete(resultsRef.current)}>전리품 받기 ▶</button>
+          </div>
+        )}
+        {ending === 'lose' && (
+          <div className="bt-banner lose">
+            <div className="bt-banner-title">패배… 💀</div>
+            <div className="bt-banner-sub">보스 체력 {bossHp}/{maxHp} · 거의 다 왔어요!</div>
+            <button className="btn primary" onClick={() => onComplete(resultsRef.current)}>결과 보기 ▶</button>
+          </div>
+        )}
+
+        {/* 시작 카운트다운 */}
+        {!armed && (
+          <div className="bt-count" aria-hidden>
+            <span key={count} className={count === 0 ? 'cd-go' : 'cd-num'}>{count === 0 ? 'FIGHT!' : count}</span>
           </div>
         )}
       </div>
 
+      {/* ── 문제 ── */}
       <p className="boss-q">{problem.prompt}</p>
       <div className="choices boss-choices">
         {problem.choices.map((c, i) => {
@@ -185,13 +260,13 @@ export function BossGame({ problems, theme, onComplete, onExit }: Props) {
             else if (isPick) cls += ' wrong'
           }
           return (
-            <button key={i} className={cls} disabled={!!flash} onClick={() => answer(i)}>
+            <button key={i} className={cls} disabled={!!flash || !armed || !!ending} onClick={() => answer(i)}>
               <span className="choice-num">{i + 1}</span> {c}
             </button>
           )
         })}
       </div>
-      <p className="boss-foot">⚔️ 정답 데미지 · 🔥콤보 {CRIT_AT}+ 크리티컬 · 💎 {gained}</p>
+      <p className="boss-foot">⚔️ 정답=마법 · 🔥콤보 {CRIT_AT}+ 크리티컬 · 💎 {gained}</p>
     </GameFrame>
   )
 }
