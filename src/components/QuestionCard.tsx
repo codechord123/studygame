@@ -11,6 +11,7 @@ interface Props {
   index: number
   total: number
   combo: number
+  lives?: number
   mode: PlayMode
   onSubmit: (result: { correct: boolean; responses: string[]; timeLeftRatio: number }) => void
   /** 풀이 도중 마을로 나가기 */
@@ -28,7 +29,7 @@ function challengeTime(problem: Problem): number {
   return base + long
 }
 
-export function QuestionCard({ problem, index, total, combo, mode, onSubmit, onExit, theme, autoAdvance = true }: Props) {
+export function QuestionCard({ problem, index, total, combo, lives, mode, onSubmit, onExit, theme, autoAdvance = true }: Props) {
   const timeLimit = mode === 'challenge' ? challengeTime(problem) : 0
   const blankCount = problem.type === 'fill_blank' ? problem.blanks.length : 1
   const [responses, setResponses] = useState<string[]>(() => Array(blankCount).fill(''))
@@ -134,6 +135,9 @@ export function QuestionCard({ problem, index, total, combo, mode, onSubmit, onE
         )}
         {timeLimit > 0 && (
           <span className={`timer ${timeLeft <= 5 ? 'danger' : ''}`}>⏱ {timeLeft}s</span>
+        )}
+        {lives != null && (
+          <span className="q-lives" title="생명">{lives > 0 ? '❤️'.repeat(lives) : '💔'}</span>
         )}
       </div>
       <div className="qbar" aria-hidden>
@@ -251,6 +255,7 @@ export function QuestionCard({ problem, index, total, combo, mode, onSubmit, onE
           )}
           {result.note && <div className="note-tip">💡 {result.note}</div>}
           {problem.explanation && <div className="explain">📘 풀이: {problem.explanation}</div>}
+          {!result.correct && <div className="wrong-saved">📒 오답노트에 담았어요 · 나중에 다시 풀어봐요</div>}
         </div>
       )}
 

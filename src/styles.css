@@ -3852,6 +3852,40 @@ body {
   font-weight: 800;
   color: var(--good);
 }
+/* 학습 생명(하트) */
+.q-lives {
+  margin-left: auto;
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+/* 오답 시 오답노트 저장 안내 */
+.wrong-saved {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #b3611a;
+  background: #fff4e3;
+  border: 1px solid #ffd9a8;
+  border-radius: 10px;
+  padding: 7px 10px;
+}
+/* 결과 — 게임오버 배너 / 오답노트 요약 */
+.gameover-banner {
+  background: #ffe7ea;
+  border: 1.5px solid var(--bad);
+  color: #b3263a;
+  font-weight: 800;
+  font-size: 14px;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin: 4px 0 2px;
+}
+.wrong-summary {
+  font-size: 15px;
+  font-weight: 800;
+  color: #b3611a;
+  margin: 4px 0 0;
+}
 
 /* wrong book */
 .note-list {

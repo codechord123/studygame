@@ -145,6 +145,8 @@ interface SessionState {
   fromGame?: boolean // Phaser 게임에서 시작된 세션(오버레이)
   plotId?: string // 채집밭에서 시작된 경우
   miniGameId?: string // 선택한 미니게임 (battle 연출 등)
+  lives?: number // 차근차근 학습 생명(찍기 방지). undefined면 생명 제한 없음
+  gameOver?: boolean // 생명 소진으로 일찍 종료됐는지
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -250,7 +252,7 @@ export default function App() {
 
   const { level, cur, need } = levelProgress(profile.xp)
 
-  function startQuiz(problems: Problem[], mode: PlayMode, villager?: Villager, miniGameId?: string) {
+  function startQuiz(problems: Problem[], mode: PlayMode, villager?: Villager, miniGameId?: string, lives?: number) {
     setSession({
       problems: prepareProblems(problems, mode, profile.mastery),
       mode,
@@ -264,6 +266,7 @@ export default function App() {
       gained: 0,
       wrong: [],
       masteryUpdates: {},
+      lives,
     })
     setEarnedBadges([])
     setScreen('quiz')
@@ -275,7 +278,8 @@ export default function App() {
   function startMiniGame(g: MiniGame) {
     if (!selectedUnit) return
     const picked = pickForGame(g, selectedUnit.problems)
-    startQuiz(picked, g.mode, unitVillager ?? undefined, g.id)
+    // 차근차근·빈칸(card)은 생명 3개 — 막 찍으면 게임 오버
+    startQuiz(picked, g.mode, unitVillager ?? undefined, g.id, g.kind === 'card' ? 3 : undefined)
   }
 
   function exitQuiz() {
@@ -322,6 +326,7 @@ export default function App() {
       ),
     }
 
+    const lives = session.lives != null && !r.correct ? session.lives - 1 : session.lives
     const next: SessionState = {
       ...session,
       combo,
@@ -331,9 +336,13 @@ export default function App() {
       wrong,
       masteryUpdates,
       i: session.i + 1,
+      lives,
     }
 
-    if (next.i >= next.problems.length) {
+    if (lives != null && lives <= 0) {
+      // 생명 소진 — 푼 문제까지만 반영하고 게임 오버
+      await finishSession({ ...next, problems: next.problems.slice(0, next.i), gameOver: true })
+    } else if (next.i >= next.problems.length) {
       await finishSession(next)
     } else {
       setSession(next)
@@ -790,6 +799,7 @@ export default function App() {
               index={session.i}
               total={session.problems.length}
               combo={session.combo}
+              lives={session.lives}
               mode={session.mode}
               theme={theme}
               autoAdvance={session.miniGameId !== 'fill'}
@@ -2107,7 +2117,10 @@ function Result(props: {
           ))}
         </div>
       )}
-      <h1 className="title">결과</h1>
+      <h1 className="title">{session.gameOver ? '게임 오버 💔' : '결과'}</h1>
+      {session.gameOver && (
+        <div className="gameover-banner">생명을 다 썼어요! 막 찍지 말고 차근차근 풀어요.</div>
+      )}
       <div className="result-stars" aria-label={`별 ${stars}개`}>
         {[0, 1, 2].map((i) => (
           <span key={i} className={`rstar ${i < stars ? 'on' : ''}`}>
@@ -2142,12 +2155,19 @@ function Result(props: {
         </div>
       )}
 
-      <button className="btn primary big" onClick={props.onHome}>
-        마을로 돌아가기
-      </button>
-      {session.wrong.length > 0 && (
-        <button className="btn ghost big" onClick={props.onWrong}>
-          틀린 {session.wrong.length}문제 복습
+      {session.wrong.length > 0 ? (
+        <>
+          <p className="wrong-summary">📒 오답노트에 <b>{session.wrong.length}문제</b> 담았어요</p>
+          <button className="btn primary big" onClick={props.onWrong}>
+            📒 오답노트에서 {session.wrong.length}문제 복습하기
+          </button>
+          <button className="btn ghost big" onClick={props.onHome}>
+            마을로 돌아가기
+          </button>
+        </>
+      ) : (
+        <button className="btn primary big" onClick={props.onHome}>
+          마을로 돌아가기
         </button>
       )}
     </main>

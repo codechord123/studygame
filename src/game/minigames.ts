@@ -76,7 +76,13 @@ export function pickForGame(g: MiniGame, problems: Problem[]): Problem[] {
   if (g.kind === 'sequence') {
     return shuffled(problems.filter((p) => p.type === 'sequence')).slice(0, g.count)
   }
-  const base = problems.filter((p) => p.type !== 'sequence')
+  let base = problems.filter((p) => p.type !== 'sequence')
+  // 서술형(short_answer, 타이핑)은 차근차근(card) 풀이에서 제외 — 짝꿍 카드 등에서만 재활용.
+  // 단, 제외 후 문제가 너무 적은 단원은 빈 화면을 막기 위해 유지한다.
+  if (g.kind === 'card') {
+    const noShort = base.filter((p) => p.type !== 'short_answer')
+    if (noShort.length >= 4) base = noShort
+  }
   let pool = g.pool === 'all' ? base : base.filter((p) => p.tags?.includes(g.pool))
   if (pool.length < 4) pool = base
 
