@@ -517,10 +517,50 @@ body {
   background: linear-gradient(90deg, var(--good), var(--accent));
   transition: width 1s linear;
 }
+/* 질문 진행 바 */
+.qbar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-3, #e7e2f5);
+  overflow: hidden;
+  margin: 2px 0 2px;
+}
+.qbar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--theme, #7c3aed), var(--accent, #c026d3));
+  transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
 .prompt {
-  font-size: 18px;
-  line-height: 1.6;
-  margin: 4px 0;
+  position: relative;
+  font-size: 17px;
+  line-height: 1.55;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 4px 0 2px;
+  padding: 14px 16px 14px 48px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  background: color-mix(in srgb, var(--theme, #7c3aed) 9%, var(--card));
+  border: 1.5px solid var(--line);
+  border-color: color-mix(in srgb, var(--theme, #7c3aed) 28%, var(--line));
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+.prompt::before {
+  content: 'Q';
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: var(--theme, #7c3aed);
+  color: #fff;
+  font-weight: 900;
+  font-size: 14px;
 }
 
 .choices {

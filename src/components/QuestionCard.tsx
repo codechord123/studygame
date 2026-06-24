@@ -136,6 +136,9 @@ export function QuestionCard({ problem, index, total, combo, mode, onSubmit, onE
           <span className={`timer ${timeLeft <= 5 ? 'danger' : ''}`}>⏱ {timeLeft}s</span>
         )}
       </div>
+      <div className="qbar" aria-hidden>
+        <span className="qbar-fill" style={{ width: `${((index + 1) / total) * 100}%` }} />
+      </div>
       {timeLimit > 0 && (
         <div className="timer-bar">
           <div
