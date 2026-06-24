@@ -13,3 +13,7 @@ tsconfig.tsbuildinfo
 functions/node_modules
 .firebase
 firebase-debug.log
+
+# 로컬 검증용 스크린샷/스크립트 (커밋 금지)
+scratchshots/
+_*.mjs
