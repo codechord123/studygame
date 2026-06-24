@@ -140,6 +140,8 @@ export function correctAnswerText(problem: Problem): string {
       return problem.answer ? 'O (맞음)' : 'X (틀림)'
     case 'fill_blank':
       return problem.blanks.map((b) => b[0]).join(' , ')
+    case 'sequence':
+      return problem.steps.join(' → ')
   }
 }
 
@@ -172,6 +174,13 @@ export function gradeProblem(problem: Problem, responses: string[]): GradeResult
         matchAnswer(responses[i] ?? '', accepted, problem.numericAnswer),
       )
       return { correct: perBlank.every(Boolean), perBlank }
+    }
+    case 'sequence': {
+      // responses = 사용자가 배열한 순서. steps 와 완전히 일치해야 정답.
+      const correct =
+        responses.length === problem.steps.length &&
+        problem.steps.every((s, i) => s === responses[i])
+      return { correct }
     }
   }
 }

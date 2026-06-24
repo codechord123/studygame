@@ -14,7 +14,7 @@ export interface MiniGame {
   emoji: string
   name: string
   desc: string
-  kind: 'card' | 'ox' | 'sort' | 'boss' | 'memory'
+  kind: 'card' | 'ox' | 'sort' | 'boss' | 'memory' | 'sequence'
   mode: PlayMode
   pool: string
   count: number
@@ -26,6 +26,7 @@ export const MINIGAMES: MiniGame[] = [
   { id: 'sort',   emoji: '🗂️', name: '분류 대소동',   desc: '떨어지는 카드를 알맞은 바구니로!',         kind: 'sort',   mode: 'challenge', pool: 'all',    count: 12 },
   { id: 'boss',   emoji: '⚔️', name: '보스 러시',     desc: '정답으로 데미지! 콤보로 크리티컬!',        kind: 'boss',   mode: 'challenge', pool: 'battle', count: 10 },
   { id: 'memory', emoji: '🃏', name: '짝꿍 카드',     desc: '4×4 카드에서 용어와 뜻을 짝지어요',       kind: 'memory', mode: 'study',     pool: 'memory', count: 8 },
+  { id: 'seq',    emoji: '🔢', name: '순서대로 줄줄이', desc: '카드를 올바른 순서로 배열!',              kind: 'sequence', mode: 'challenge', pool: 'seq', count: 8 },
   { id: 'fill',   emoji: '🔲', name: '빈칸 술술',     desc: '핵심 낱말로 빈칸 채우기 (천천히)',        kind: 'card',   mode: 'study',     pool: 'fill',   count: 10 },
 ]
 
@@ -71,8 +72,13 @@ function dominantSortGroup(problems: Problem[]): Problem[] {
 // 미니게임의 성향(pool)에 맞는 문제만 골라 count 만큼 돌려준다.
 // 해당 태그 문제가 부족하면(다른 단원 등) 단원 전체에서 뽑는다.
 export function pickForGame(g: MiniGame, problems: Problem[]): Problem[] {
-  let pool = g.pool === 'all' ? problems : problems.filter((p) => p.tags?.includes(g.pool))
-  if (pool.length < 4) pool = problems
+  // 순서 문제(sequence)는 순서 게임 전용. 다른 게임 풀에는 절대 섞이지 않게 분리한다.
+  if (g.kind === 'sequence') {
+    return shuffled(problems.filter((p) => p.type === 'sequence')).slice(0, g.count)
+  }
+  const base = problems.filter((p) => p.type !== 'sequence')
+  let pool = g.pool === 'all' ? base : base.filter((p) => p.tags?.includes(g.pool))
+  if (pool.length < 4) pool = base
 
   if (g.kind === 'boss') {
     const mc = pool.filter((p) => p.type === 'multiple_choice')

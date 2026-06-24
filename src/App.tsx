@@ -4,6 +4,7 @@ import { SpeedOxGame, type GameResult } from './components/SpeedOxGame'
 import { MemoryGame } from './components/MemoryGame'
 import { SortGame } from './components/SortGame'
 import { BossGame } from './components/BossGame'
+import { SequenceGame } from './components/SequenceGame'
 import { TownMap, type FacilityScreen } from './components/TownMap'
 import { AiMaker } from './components/AiMaker'
 import { ProblemCreate, type EditTarget } from './components/ProblemCreate'
@@ -743,6 +744,16 @@ export default function App() {
               problems={session.problems}
               theme={theme}
               avatar={profile.avatar}
+              onComplete={(res) => finishFromResults(session.problems, res, villager, session.miniGameId)}
+              onExit={exitQuiz}
+            />
+          )
+        }
+        if (kind === 'sequence') {
+          return (
+            <SequenceGame
+              problems={session.problems}
+              theme={theme}
               onComplete={(res) => finishFromResults(session.problems, res, villager, session.miniGameId)}
               onExit={exitQuiz}
             />

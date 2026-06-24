@@ -2497,6 +2497,51 @@ body {
   text-align: center;
 }
 
+/* ── 🔢 순서대로 줄줄이 ─────────────────────────────────────────── */
+.seq-game { gap: 10px; }
+.seq-prompt { font-size: 16px; font-weight: 800; line-height: 1.4; margin: 2px 0; }
+.seq-track { position: relative; display: flex; flex-direction: column; gap: 8px; }
+.seq-track::before {
+  content: ''; position: absolute; left: 13px; top: 16px; bottom: 16px; width: 2px;
+  background: repeating-linear-gradient(180deg, var(--line) 0 6px, transparent 6px 12px);
+}
+.seq-slot { position: relative; display: flex; align-items: center; gap: 10px; }
+.seq-num {
+  flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+  font-weight: 900; font-size: 13px; color: #fff; z-index: 1;
+  background: linear-gradient(135deg, #7c3aed, #c026d3); box-shadow: 0 2px 6px rgba(124, 58, 237, 0.4);
+  transition: background 0.2s;
+}
+.seq-card, .seq-blank {
+  flex: 1; min-height: 46px; border-radius: 12px; padding: 10px 14px;
+  display: flex; align-items: center; font-size: 15px;
+}
+.seq-card {
+  background: var(--card); border: 2px solid var(--primary); color: var(--ink); font-weight: 700;
+  cursor: pointer; box-shadow: 0 2px 0 rgba(124, 58, 237, 0.25); transition: transform 0.1s ease;
+  animation: seqDrop 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.seq-card:active { transform: scale(0.98); }
+@keyframes seqDrop { 0% { transform: translateY(-8px) scale(0.96); opacity: 0; } 100% { transform: none; opacity: 1; } }
+.seq-blank { background: var(--surface-2); border: 2px dashed var(--line); color: var(--muted); font-weight: 600; font-size: 13px; }
+.seq-slot.ok .seq-num { background: var(--good); }
+.seq-slot.ok .seq-card { border-color: var(--good); background: #e6f7ee; box-shadow: 0 0 0 2px var(--good); }
+.seq-slot.no .seq-num { background: var(--bad); }
+.seq-slot.no .seq-card { border-color: var(--bad); background: #ffeaea; box-shadow: 0 0 0 2px var(--bad); animation: seqWrong 0.4s ease; }
+@keyframes seqWrong { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+.seq-bank {
+  display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; min-height: 54px;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px;
+}
+.seq-chip {
+  background: linear-gradient(135deg, #ffffff, #f1edfb); border: 2px solid var(--primary); color: var(--ink);
+  border-radius: 12px; padding: 10px 14px; font-weight: 800; font-size: 15px; cursor: pointer;
+  box-shadow: 0 3px 0 rgba(124, 58, 237, 0.3); transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.seq-chip:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(124, 58, 237, 0.3); }
+.seq-chip.used { opacity: 0.25; pointer-events: none; border-style: dashed; box-shadow: none; }
+
 /* 결과 — 별점 */
 .result-stars {
   display: flex;

@@ -1,7 +1,7 @@
 // 문제 데이터 스키마 — 과목/유형에 상관없이 AI 자동변환 결과를 담을 수 있도록 설계.
 // AI 변환기는 워크시트 이미지를 받아 아래 형식의 JSON 배열을 만들어낸다. (src/lib/ai/convert.ts 참고)
 
-export type ProblemType = 'multiple_choice' | 'short_answer' | 'fill_blank' | 'ox'
+export type ProblemType = 'multiple_choice' | 'short_answer' | 'fill_blank' | 'ox' | 'sequence'
 
 export interface ProblemBase {
   id: string
@@ -42,11 +42,17 @@ export interface FillBlankProblem extends ProblemBase {
   blanks: string[][] // 각 빈칸별 허용 정답 목록. prompt의 {{i}} 와 대응
 }
 
+export interface SequenceProblem extends ProblemBase {
+  type: 'sequence'
+  steps: string[] // 올바른 순서대로의 단계들 (게임에서 섞어서 출제)
+}
+
 export type Problem =
   | MultipleChoiceProblem
   | ShortAnswerProblem
   | OXProblem
   | FillBlankProblem
+  | SequenceProblem
 
 export interface Quiz {
   id: string
