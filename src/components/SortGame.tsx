@@ -47,13 +47,13 @@ export function SortGame({ problems, theme, onComplete, onExit }: Props) {
   }, [items])
 
   const [qi, setQi] = useState(0)
-  const [y, setY] = useState(-18)
+  const [y, setY] = useState(0)
   const [lives, setLives] = useState(START_LIVES)
   const [combo, setCombo] = useState(0)
   const [gained, setGained] = useState(0)
   const [flash, setFlash] = useState<null | { ok: boolean; key: string; answer: string }>(null)
 
-  const yRef = useRef(-18)
+  const yRef = useRef(0)
   const speedRef = useRef(20)
   const comboRef = useRef(0)
   const gainedRef = useRef(0)
@@ -117,8 +117,8 @@ export function SortGame({ problems, theme, onComplete, onExit }: Props) {
         onComplete(resultsRef.current)
         return
       }
-      yRef.current = -18
-      setY(-18)
+      yRef.current = 0
+      setY(0)
       setFlash(null)
       setQi(qi + 1)
       lockRef.current = false
