@@ -23,7 +23,7 @@ export interface MiniGame {
 export const MINIGAMES: MiniGame[] = [
   { id: 'study',  emoji: '📖', name: '차근차근',     desc: '타이머 없이 정답·풀이를 확인하며',       kind: 'card',   mode: 'study',     pool: 'all',    count: 12 },
   { id: 'ox',     emoji: '⚡', name: '번개 OX',      desc: '참이면 O, 거짓이면 X — 생명 3개 반사신경!', kind: 'ox',     mode: 'challenge', pool: 'ox',     count: 16 },
-  { id: 'sort',   emoji: '🗂️', name: '분류 대소동',   desc: '떨어지는 카드를 알맞은 바구니로!',         kind: 'sort',   mode: 'challenge', pool: 'all',    count: 10 },
+  { id: 'sort',   emoji: '🗂️', name: '분류 대소동',   desc: '떨어지는 카드를 알맞은 바구니로!',         kind: 'sort',   mode: 'challenge', pool: 'all',    count: 12 },
   { id: 'boss',   emoji: '⚔️', name: '보스 러시',     desc: '정답으로 데미지! 콤보로 크리티컬!',        kind: 'boss',   mode: 'challenge', pool: 'battle', count: 10 },
   { id: 'memory', emoji: '🃏', name: '짝꿍 카드',     desc: '4×4 카드에서 용어와 뜻을 짝지어요',       kind: 'memory', mode: 'study',     pool: 'memory', count: 8 },
   { id: 'fill',   emoji: '🔲', name: '빈칸 술술',     desc: '핵심 낱말로 빈칸 채우기 (천천히)',        kind: 'card',   mode: 'study',     pool: 'fill',   count: 10 },
@@ -50,16 +50,22 @@ function isSortable(p: Problem): boolean {
   return false
 }
 
-// 같은 '보기 묶음'을 공유하는 가장 큰 그룹을 고른다(= 안정적인 바구니 축).
+// 분류 게임의 바구니 축을 고른다.
+//  1순위: 같은 보기 묶음을 공유하는 객관식(다중 범주, 예: 자유권/평등권/사회권) 그룹
+//  2순위: OX(참/거짓 2바구니) — 다중 범주 콘텐츠가 부족한 단원 폴백
 function dominantSortGroup(problems: Problem[]): Problem[] {
   const groups = new Map<string, Problem[]>()
-  for (const p of problems.filter(isSortable)) {
-    const sig = p.type === 'ox' ? 'OX' : [...(p as { choices: string[] }).choices].sort().join('|')
+  for (const p of problems) {
+    if (p.type !== 'multiple_choice' || !isSortable(p)) continue
+    const sig = [...p.choices].sort().join('|')
     const arr = groups.get(sig) ?? []
     arr.push(p)
     groups.set(sig, arr)
   }
-  return [...groups.values()].sort((a, b) => b.length - a.length)[0] ?? []
+  const bestMc = [...groups.values()].sort((a, b) => b.length - a.length)[0] ?? []
+  if (bestMc.length >= 4) return bestMc
+  const ox = problems.filter((p) => p.type === 'ox')
+  return ox.length >= 4 ? ox : bestMc
 }
 
 // 미니게임의 성향(pool)에 맞는 문제만 골라 count 만큼 돌려준다.
@@ -74,13 +80,7 @@ export function pickForGame(g: MiniGame, problems: Problem[]): Problem[] {
   }
 
   if (g.kind === 'sort') {
-    // 단원 전체에서 같은 바구니 축을 공유하는 그룹을 우선 사용 (없으면 OX 폴백)
-    let group = dominantSortGroup(problems)
-    if (group.length < 4) {
-      const ox = problems.filter((p) => p.type === 'ox')
-      group = ox.length >= 4 ? ox : group
-    }
-    return shuffled(group).slice(0, g.count)
+    return shuffled(dominantSortGroup(problems)).slice(0, g.count)
   }
 
   return shuffled(pool).slice(0, g.count)
