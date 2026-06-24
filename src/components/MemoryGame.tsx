@@ -154,26 +154,32 @@ export function MemoryGame({ problems, theme, onComplete, onExit }: Props) {
       )}
       <p className="memory-hint">문제와 정답을 짝지어요 · 뒤집기 {moves}회</p>
 
-      <div className="memory-grid">
-        {cards.map((c, idx) => {
-          const isMatched = matched.has(c.pid)
-          const isUp = flipped.includes(idx) || isMatched
-          return (
-            <button
-              key={c.key}
-              className={`mcard ${isUp ? 'up' : ''} ${isMatched ? 'matched' : ''} side-${c.side}`}
-              onClick={() => click(idx)}
-              disabled={isMatched}
-            >
-              <span className="mcard-inner">
-                <span className="mcard-face mcard-front">?</span>
-                <span className="mcard-face mcard-back">
-                  <span className="mcard-text">{c.text}</span>
+      <div className="memory-arena">
+        <div className="bt-stars" aria-hidden />
+        <div className="memory-grid">
+          {cards.map((c, idx) => {
+            const isMatched = matched.has(c.pid)
+            const isUp = flipped.includes(idx) || isMatched
+            return (
+              <button
+                key={c.key}
+                className={`mcard ${isUp ? 'up' : ''} ${isMatched ? 'matched' : ''} side-${c.side}`}
+                onClick={() => click(idx)}
+                disabled={isMatched}
+              >
+                <span className="mcard-inner">
+                  <span className="mcard-face mcard-front">
+                    <span className="mcard-emblem">?</span>
+                  </span>
+                  <span className="mcard-face mcard-back">
+                    <span className="mcard-text">{c.text}</span>
+                    {isMatched && <span className="mcard-spark" aria-hidden>✨</span>}
+                  </span>
                 </span>
-              </span>
-            </button>
-          )
-        })}
+              </button>
+            )
+          })}
+        </div>
       </div>
     </GameFrame>
   )
