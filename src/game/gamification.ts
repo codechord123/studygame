@@ -20,6 +20,8 @@ export interface PlayerProfile {
   bestCombo: number
   solvedCount: number
   correctCount: number
+  perfectCount: number // 한 세트 만점 누적 횟수
+  dailyGoalCount: number // 일일 목표 달성 누적 횟수
   bestScore: number // 한 세트 최고 점수(정답률) — 랭킹용
   cosmetics: string[] // 보유한 코스튬 id
   equipped: string | null // (구버전 호환) 단일 착용 id — 마이그레이션용
@@ -73,6 +75,8 @@ export const emptyProfile: PlayerProfile = {
   bestCombo: 0,
   solvedCount: 0,
   correctCount: 0,
+  perfectCount: 0,
+  dailyGoalCount: 0,
   bestScore: 0,
   cosmetics: [],
   equipped: null,
@@ -215,6 +219,19 @@ export const BADGES: Badge[] = [
     desc: '문제 50개 풀이',
     earned: (c) => c.profile.solvedCount >= 50,
   },
+  // ── 성장 시스템 v2 업적 12종 ──
+  { id: 'correct-100', emoji: '🎯', name: '백발백중', desc: '정답을 100개 맞혔어요', earned: (c) => c.profile.correctCount >= 100 },
+  { id: 'solved-200', emoji: '📖', name: '문제 탐험가', desc: '문제를 200개 풀었어요', earned: (c) => c.profile.solvedCount >= 200 },
+  { id: 'streak-7', emoji: '🗓️', name: '일주일 개근', desc: '7일 연속으로 공부했어요', earned: (c) => c.profile.streak >= 7 },
+  { id: 'streak-best-30', emoji: '🏅', name: '한 달 도전왕', desc: '최고 30일 연속 기록을 세웠어요', earned: (c) => c.profile.streakBest >= 30 },
+  { id: 'combo-15', emoji: '⚡', name: '콤보 폭발', desc: '15문제 연속 정답을 달성했어요', earned: (c) => c.profile.bestCombo >= 15 },
+  { id: 'level-10', emoji: '🌟', name: '레벨 10 도달', desc: '레벨 10에 도달했어요', earned: (c) => levelFromXp(c.profile.xp) >= 10 },
+  { id: 'level-20', emoji: '👑', name: '학습 마스터', desc: '레벨 20에 도달했어요', earned: (c) => levelFromXp(c.profile.xp) >= 20 },
+  { id: 'perfect-5', emoji: '💎', name: '완벽주의자', desc: '한 세트 만점을 5번 받았어요', earned: (c) => c.profile.perfectCount >= 5 },
+  { id: 'coins-500', emoji: '💰', name: '알뜰 부자', desc: '벨을 500개 모았어요', earned: (c) => c.profile.coins >= 500 },
+  { id: 'dex-10', emoji: '🗂️', name: '도감 수집가', desc: '단원 10개를 완성했어요', earned: (c) => c.profile.dexRewards.length >= 10 },
+  { id: 'villager-50', emoji: '💞', name: '마을 인기쟁이', desc: '한 주민과 친밀도 50을 달성했어요', earned: (c) => Math.max(0, ...Object.values(c.profile.villagerFriends)) >= 50 },
+  { id: 'daily-30', emoji: '🔆', name: '꾸준함의 힘', desc: '일일 목표를 누적 30회 달성했어요', earned: (c) => c.profile.dailyGoalCount >= 30 },
 ]
 
 /** 이번 세션으로 새로 획득한 뱃지들 반환 */

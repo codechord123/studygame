@@ -12,7 +12,7 @@ import { AnimalCharacter } from './components/AnimalCharacter'
 import { PhaserGame } from './react/game/PhaserGame'
 import { bridge } from './game/bridge'
 import { store, type WrongNote } from './lib/storage'
-import { playWin, isMuted, setMuted } from './lib/sfx'
+import { playWin, isMuted, setMuted, playLevelUp, playBadge } from './lib/sfx'
 import { makeBackup, restoreBackup, inspectBackup } from './lib/backup'
 import { makeContentPack, importPack, inspectPack } from './lib/contentShare'
 import { firebaseEnabled } from './lib/firebase/config'
@@ -21,6 +21,9 @@ import {
   emptyProfile,
   normalizeProfile,
   levelProgress,
+  levelFromXp,
+  petForLevel,
+  type PetStage,
   comboMultiplier,
   computeScore,
   newlyEarnedBadges,
@@ -165,6 +168,7 @@ export default function App() {
   const [session, setSession] = useState<SessionState | null>(null)
   const [wrongNotes, setWrongNotes] = useState<WrongNote[]>([])
   const [earnedBadges, setEarnedBadges] = useState<Badge[]>([])
+  const [levelUp, setLevelUp] = useState<{ level: number; pet: PetStage | null } | null>(null)
   const [aiVillager, setAiVillager] = useState<Villager | null>(null)
   const [classmates, setClassmates] = useState<Classmate[]>(CLASSMATES)
   const [gameSession, setGameSession] = useState<SessionState | null>(null)
@@ -359,6 +363,10 @@ export default function App() {
         bestCombo: Math.max(profile.daily.bestCombo, s.bestCombo),
       },
     }
+    // 한 세트 만점 누적
+    if (s.problems.length > 0 && s.correct === s.problems.length) {
+      updated.perfectCount = profile.perfectCount + 1
+    }
     // 연속 출석(스트릭) — 오늘 처음 풀었으면 갱신
     const today = todayStr()
     const st = bumpStreak(profile, today)
@@ -370,6 +378,7 @@ export default function App() {
       updated.daily = { ...updated.daily, goalClaimed: true }
       updated.coins += DAILY_GOAL_COINS
       updated.xp += DAILY_GOAL_XP
+      updated.dailyGoalCount = profile.dailyGoalCount + 1
     }
     // 단원 완성 보상: 새로 '완성'된 단원마다 보너스 벨
     const claimed = new Set(profile.dexRewards)
@@ -390,7 +399,16 @@ export default function App() {
   }
 
   async function finishSession(s: SessionState) {
+    const prevLevel = levelFromXp(profile.xp)
     const { updated, fresh } = applyResult(s)
+    const newLevel = levelFromXp(updated.xp)
+    if (newLevel > prevLevel) {
+      const evolved = petForLevel(prevLevel).emoji !== petForLevel(newLevel).emoji
+      setLevelUp({ level: newLevel, pet: evolved ? petForLevel(newLevel) : null })
+      playLevelUp()
+    } else if (fresh.length) {
+      playBadge()
+    }
     setProfile(updated)
     setEarnedBadges(fresh)
     await store.saveProfile(updated)
@@ -599,6 +617,7 @@ export default function App() {
 
   return (
     <div className="app">
+      {levelUp && <LevelUpToast info={levelUp} onClose={() => setLevelUp(null)} />}
       <Hud
         avatar={profile.avatar}
         name={profile.characterName}
@@ -2018,6 +2037,34 @@ function Shop(props: {
         내 집으로
       </button>
     </main>
+  )
+}
+
+// ── 레벨업 / 펫 진화 축하 ─────────────────────────────────────────
+function LevelUpToast(props: { info: { level: number; pet: PetStage | null }; onClose: () => void }) {
+  const { info } = props
+  return (
+    <div className="levelup-ovl" onClick={props.onClose}>
+      <div className="levelup-card" onClick={(e) => e.stopPropagation()}>
+        <div className="levelup-rays" aria-hidden />
+        <div className="levelup-burst" aria-hidden>
+          {Array.from({ length: 10 }, (_, i) => (
+            <span key={i} className="lu-bit" style={{ ['--a' as string]: `${i * 36}deg` }} />
+          ))}
+        </div>
+        <div className="levelup-badge">LEVEL UP!</div>
+        <div className="levelup-lv">Lv.{info.level}</div>
+        {info.pet ? (
+          <div className="levelup-pet">
+            <div className="levelup-pet-emoji">{info.pet.emoji}</div>
+            <div className="levelup-pet-name">친구가 진화했어요 — {info.pet.name}!</div>
+          </div>
+        ) : (
+          <div className="levelup-sub">더 강해졌어요! 계속 도전해요 🎉</div>
+        )}
+        <button className="btn primary" onClick={props.onClose}>좋아요 ▶</button>
+      </div>
+    </div>
   )
 }
 
