@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Problem, MultipleChoiceProblem } from '../types/problem'
 import type { GameResult } from './SpeedOxGame'
 import { GameFrame } from './GameFrame'
+import { TimerRing } from './TimerRing'
 import { computeScore } from '../game/gamification'
+import { useRaf } from '../lib/useRaf'
 import { playCorrect, playWrong, playCombo, playBomb } from '../lib/sfx'
 
 interface Props {
@@ -23,6 +25,12 @@ function bossFace(ratio: number): string {
   return '💥'
 }
 
+interface Fx {
+  key: number
+  pts: number
+  crit: boolean
+}
+
 // 정답으로 보스에게 데미지, 콤보로 크리티컬, 오답/시간초과는 보스의 반격(생명 감소).
 export function BossGame({ problems, theme, onComplete, onExit }: Props) {
   const mcs = useMemo(
@@ -35,10 +43,13 @@ export function BossGame({ problems, theme, onComplete, onExit }: Props) {
   const [playerHp, setPlayerHp] = useState(PLAYER_HP)
   const [combo, setCombo] = useState(0)
   const [gained, setGained] = useState(0)
-  const [time, setTime] = useState(PER_SEC)
+  const [t, setT] = useState(PER_SEC)
   const [picked, setPicked] = useState<number | null>(null)
   const [flash, setFlash] = useState<null | { ok: boolean; crit: boolean; dmg: number; answer: number }>(null)
   const [shake, setShake] = useState(false)
+  const [hpHit, setHpHit] = useState(false)
+  const [attack, setAttack] = useState(false)
+  const [fx, setFx] = useState<Fx | null>(null)
 
   const bossHpRef = useRef(maxHp)
   const playerHpRef = useRef(PLAYER_HP)
@@ -46,6 +57,8 @@ export function BossGame({ problems, theme, onComplete, onExit }: Props) {
   const gainedRef = useRef(0)
   const resultsRef = useRef<GameResult[]>([])
   const lockRef = useRef(false)
+  const tRef = useRef(PER_SEC)
+  const fxKey = useRef(0)
   const problem = mcs[qi]
 
   useEffect(() => {
@@ -58,20 +71,22 @@ export function BossGame({ problems, theme, onComplete, onExit }: Props) {
     if (!problem) return
     lockRef.current = false
     setPicked(null)
-    setTime(PER_SEC)
+    tRef.current = PER_SEC
+    setT(PER_SEC)
   }, [qi, problem])
 
-  // 제한 시간 (풀이 중에만)
-  useEffect(() => {
-    if (!problem || flash) return
-    if (time <= 0) {
+  // 부드러운 제한 시간 (풀이 중에만)
+  const ticking = !!problem && !flash
+  useRaf(ticking, (dt) => {
+    tRef.current -= dt
+    if (tRef.current <= 0) {
+      tRef.current = 0
+      setT(0)
       answer(-1)
       return
     }
-    const t = window.setTimeout(() => setTime((s) => s - 1), 1000)
-    return () => window.clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [time, problem, flash])
+    setT(tRef.current)
+  })
 
   function answer(idx: number) {
     if (lockRef.current || !problem) return
@@ -85,13 +100,20 @@ export function BossGame({ problems, theme, onComplete, onExit }: Props) {
       crit = comboRef.current >= CRIT_AT
       dmg = crit ? 2 : 1
       bossHpRef.current = Math.max(0, bossHpRef.current - dmg)
-      gainedRef.current += computeScore({ basePoints: problem.points, combo: comboRef.current })
+      const pts = computeScore({ basePoints: problem.points, combo: comboRef.current })
+      gainedRef.current += pts
+      fxKey.current += 1
+      setFx({ key: fxKey.current, pts, crit })
+      setHpHit(true)
+      window.setTimeout(() => setHpHit(false), 420)
       crit ? playCombo(comboRef.current) : playCorrect()
     } else {
       comboRef.current = 0
       playerHpRef.current -= 1
       setShake(true)
+      setAttack(true)
       window.setTimeout(() => setShake(false), 400)
+      window.setTimeout(() => setAttack(false), 500)
       idx === -1 ? playBomb() : playWrong()
     }
     setBossHp(bossHpRef.current)
@@ -109,12 +131,14 @@ export function BossGame({ problems, theme, onComplete, onExit }: Props) {
         return
       }
       setFlash(null)
+      setFx(null)
       setQi(qi + 1)
     }, 1050)
   }
 
   if (!problem) return null
   const hpRatio = maxHp ? bossHp / maxHp : 0
+  const comboTier = combo >= 6 ? 'tier3' : combo >= CRIT_AT ? 'tier2' : 'tier1'
 
   return (
     <GameFrame
@@ -122,14 +146,24 @@ export function BossGame({ problems, theme, onComplete, onExit }: Props) {
       className={`boss-game ${shake ? 'shake' : ''}`}
       onExit={onExit}
       progress={`${qi + 1} / ${mcs.length}`}
-      combo={combo}
-      lives={playerHp}
-      time={time}
-      timeDanger={time <= 4}
+      headerExtra={
+        <>
+          {combo >= 2 && <span className={`combo-chip ${comboTier}`}>🔥 {combo} COMBO</span>}
+          <span className="gf-lives">{'❤️'.repeat(Math.max(0, playerHp))}</span>
+          <TimerRing ratio={t / PER_SEC} label={Math.ceil(t)} danger={t <= 4} size={48} />
+        </>
+      }
     >
+      {fx && (
+        <div key={fx.key} className={`fx-pop ${fx.crit ? 'crit' : ''}`} aria-hidden>
+          <span className="fx-pts">{fx.crit ? `CRIT +${fx.pts}` : `+${fx.pts}`}</span>
+        </div>
+      )}
       <div className="boss-stage">
-        <div className={`boss-face ${flash?.ok ? 'hurt' : ''}`}>{bossFace(hpRatio)}</div>
-        <div className="boss-hp">
+        <div className={`boss-face ${flash?.ok ? 'hurt' : ''} ${attack ? 'attack' : ''}`}>
+          {bossFace(hpRatio)}
+        </div>
+        <div className={`boss-hp ${hpHit ? 'hit' : ''}`}>
           <div className="boss-hp-fill" style={{ width: `${hpRatio * 100}%` }} />
           <span className="boss-hp-text">{bossHp} / {maxHp}</span>
         </div>

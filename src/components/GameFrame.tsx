@@ -37,7 +37,11 @@ export function GameFrame({
         )}
         {progress && <span className="q-progress">{progress}</span>}
         {headerExtra}
-        {combo >= 2 && <span className="combo-chip">🔥 {combo} COMBO</span>}
+        {combo >= 2 && (
+          <span className={`combo-chip ${combo >= 6 ? 'tier3' : combo >= 4 ? 'tier2' : 'tier1'}`}>
+            🔥 {combo} COMBO
+          </span>
+        )}
         {lives != null && <span className="gf-lives">{'❤️'.repeat(Math.max(0, lives))}</span>}
         {time != null && <span className={`timer ${timeDanger ? 'danger' : ''}`}>⏱ {time}s</span>}
       </div>

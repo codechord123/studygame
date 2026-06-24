@@ -52,7 +52,9 @@ export function SortGame({ problems, theme, onComplete, onExit }: Props) {
   const [combo, setCombo] = useState(0)
   const [gained, setGained] = useState(0)
   const [flash, setFlash] = useState<null | { ok: boolean; key: string; answer: string }>(null)
+  const [fx, setFx] = useState<null | { key: number; pts: number; tag: string | null }>(null)
 
+  const fxKey = useRef(0)
   const yRef = useRef(0)
   const speedRef = useRef(20)
   const comboRef = useRef(0)
@@ -99,6 +101,8 @@ export function SortGame({ problems, theme, onComplete, onExit }: Props) {
       pts = computeScore({ basePoints: problem.points, combo: comboRef.current })
       gainedRef.current += pts
       speedRef.current = Math.min(34, speedRef.current + 1.5)
+      fxKey.current += 1
+      setFx({ key: fxKey.current, pts, tag: comboRef.current >= 2 ? `🔥 ${comboRef.current} 연속` : null })
       comboRef.current >= 2 ? playCombo(comboRef.current) : playCorrect()
     } else {
       comboRef.current = 0
@@ -120,6 +124,7 @@ export function SortGame({ problems, theme, onComplete, onExit }: Props) {
       yRef.current = 0
       setY(0)
       setFlash(null)
+      setFx(null)
       setQi(qi + 1)
       lockRef.current = false
     }, 850)
@@ -138,10 +143,16 @@ export function SortGame({ problems, theme, onComplete, onExit }: Props) {
     >
       <p className="sort-hint">💎 {gained} · 카드를 알맞은 바구니로 옮겨요!</p>
 
-      <div className="sort-field">
+      <div className={`sort-field ${!flash && y > 72 ? 'danger' : ''}`}>
         {!flash && problem && (
-          <div className="sort-item" style={{ top: `${y}%` }}>
+          <div className={`sort-item ${y > 72 ? 'urgent' : ''}`} style={{ top: `${y}%` }}>
             {problem.prompt.replace(/\{\{\d+\}\}/g, '___')}
+          </div>
+        )}
+        {fx && (
+          <div key={fx.key} className="fx-pop" aria-hidden>
+            <span className="fx-pts">+{fx.pts}</span>
+            {fx.tag && <span className="fx-tag">{fx.tag}</span>}
           </div>
         )}
         {flash && (
