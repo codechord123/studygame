@@ -61,7 +61,30 @@ description: 게임 손맛(juice)·게임필 도구상자. 게임을 새로 만�
 
 ---
 
-## 🎒 재사용 웹/React 키트 (복붙)
+## 📦 이 저장소의 재사용 모듈 — `src/lib/juice/`
+
+studygame 안에는 아래 키트가 **실제 동작 코드**로 들어 있다. 새 연출은 흩어서 짜지 말고 여기서 import 한다.
+
+```ts
+import { useJuice } from '../lib/juice'
+const juice = useJuice()
+juice.correct(btnEl, 10) // 정답음 + 초록 플래시 + 진동 + 점수팝업
+juice.wrong(cardEl)      // 오답음 + 빨강 플래시 + 셰이크 + 진동
+juice.combo(5, el)       // 음정 상승 콤보음 + 콤보 텍스트
+juice.win()              // 팡파르 + 폭죽
+
+// 개별 명령형도 가능
+import { shake, flash, hitStop, burstConfetti, floatText, vibrate } from '../lib/juice'
+```
+
+- `effects.ts` — `shake / flash / hitStop / popIn / burstConfetti / vibrate` (전부 Web Animations API, **외부 CSS 불필요**, `prefers-reduced-motion` 존중)
+- `floatText.ts` — `floatText(text,x,y) / floatTextAt(el,text)`
+- `useJuice.ts` — 사운드+모션+햅틱 묶음 훅
+- `sfx.ts`(`src/lib/sfx.ts`) — 에셋 0 Web Audio 효과음(`playCorrect/playWrong/playCombo/playVictory/...`, 음소거 상태 포함). `juice` barrel 에서 재노출됨.
+
+> 다른 프로젝트로 가져갈 때는 `src/lib/juice/` 폴더와 `src/lib/sfx.ts` 를 함께 복사하면 그대로 동작한다.
+
+## 🎒 핵심 패턴 스니펫 (원리 참고용)
 
 ### sfx.ts — 에셋 없는 Web Audio 효과음
 ```ts

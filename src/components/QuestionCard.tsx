@@ -3,6 +3,7 @@ import type { Problem } from '../types/problem'
 import { gradeProblem, correctAnswerText } from '../lib/grading'
 import { computeScore } from '../game/gamification'
 import { playCorrect, playWrong } from '../lib/sfx'
+import { vibrate } from '../lib/juice'
 
 export type PlayMode = 'study' | 'challenge'
 
@@ -90,8 +91,13 @@ export function QuestionCard({ problem, index, total, combo, lives, mode, onSubm
     const r = gradeProblem(problem, resp)
     setResult(r)
     setSubmitted(true)
-    if (r.correct) playCorrect()
-    else playWrong()
+    if (r.correct) {
+      playCorrect()
+      vibrate(20)
+    } else {
+      playWrong()
+      vibrate([40, 30, 40])
+    }
     const timeLeftRatio = timeLimit ? Math.max(0, timeLeft) / timeLimit : 0
     pendingRef.current = { correct: r.correct, responses: resp, timeLeftRatio }
     if (r.correct) {
