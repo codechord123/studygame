@@ -1934,36 +1934,60 @@ body {
   flex-direction: column;
   gap: 14px;
 }
-.ox-top {
-  display: grid;
-  place-items: center;
-  margin: 2px 0 4px;
-}
-.ox-top .timer-ring {
-  margin: 0;
-}
 .ox-score {
   font-size: 13px;
   font-weight: 800;
   color: var(--accent);
 }
-.ox-question {
-  font-size: 18px;
-  line-height: 1.5;
-  margin: 4px 0 0;
+/* 퀴즈쇼 스테이지 */
+.ox-stage {
+  position: relative;
+  overflow: hidden;
+  min-height: 184px;
+  margin: 2px 0;
+  padding: 12px 12px 14px;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: radial-gradient(120% 80% at 50% -10%, #6a44c0 0%, #36205f 60%, #281748 100%);
+  box-shadow: inset 0 -22px 42px -20px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
+.ox-ring { position: absolute; top: 10px; right: 12px; z-index: 2; }
+.ox-judge {
+  position: relative; z-index: 1; font-size: 54px; line-height: 1; margin-top: 6px;
+  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.45)); animation: judgeFloat 2.6s ease-in-out infinite;
+}
+@keyframes judgeFloat { 50% { transform: translateY(-5px); } }
+.ox-judge.happy { animation: judgeHappy 0.5s ease; }
+@keyframes judgeHappy {
+  0%, 100% { transform: translateY(0) scale(1); }
+  30% { transform: translateY(-14px) scale(1.16) rotate(-6deg); }
+  60% { transform: translateY(0) scale(1.05); }
+}
+.ox-judge.shock { animation: judgeShock 0.45s ease; }
+@keyframes judgeShock {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: translateX(-6px) rotate(-9deg); }
+  60% { transform: translateX(6px) rotate(9deg); }
+}
+.ox-bolt { position: absolute; top: -6px; right: -24px; font-size: 30px; animation: boltPop 0.5s ease; }
+@keyframes boltPop {
+  0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+  50% { transform: scale(1.3) rotate(10deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); }
+}
+.ox-statement-card {
+  position: relative; z-index: 1; margin-top: 12px; width: 100%; max-width: 320px;
+  padding: 12px 16px; border-radius: 14px; text-align: center;
+  background: rgba(255, 255, 255, 0.97); box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+.ox-question { font-size: 16px; font-weight: 800; line-height: 1.45; margin: 0; color: var(--ink); }
 .ox-candidate {
-  background: var(--surface-2);
-  color: var(--ink);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 12px 14px;
-  font-size: 16px;
+  margin-top: 8px; background: var(--surface-2); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 10px; padding: 8px 12px; font-size: 15px; font-weight: 700;
 }
-.ox-ask {
-  color: var(--muted);
-  font-size: 13px;
-}
+.ox-ask { color: var(--muted); font-size: 12px; font-weight: 600; }
 .ox-buttons {
   display: flex;
   gap: 12px;

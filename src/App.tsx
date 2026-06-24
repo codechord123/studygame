@@ -732,6 +732,7 @@ export default function App() {
             <SpeedOxGame
               problems={session.problems}
               theme={theme}
+              avatar={profile.avatar}
               onComplete={(res) => finishFromResults(session.problems, res, villager, session.miniGameId)}
               onExit={exitQuiz}
             />

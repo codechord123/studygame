@@ -16,6 +16,7 @@ export interface GameResult {
 interface Props {
   problems: Problem[]
   theme?: string
+  avatar?: string
   onComplete: (results: GameResult[]) => void
   onExit?: () => void
 }
@@ -62,7 +63,7 @@ interface Fx {
 
 // 보여준 답이 맞는지 O/X 로 빠르게 판단하는 반사신경 미니게임.
 // 생명 3개 · 빠를수록 고득점 · 연속 정답 콤보.
-export function SpeedOxGame({ problems, theme, onComplete, onExit }: Props) {
+export function SpeedOxGame({ problems, theme, avatar = '🐱', onComplete, onExit }: Props) {
   const items = useMemo(() => buildItems(problems), [problems])
   const [i, setI] = useState(0)
   const [results, setResults] = useState<GameResult[]>([])
@@ -141,6 +142,7 @@ export function SpeedOxGame({ problems, theme, onComplete, onExit }: Props) {
   }
 
   const comboTier = streak >= 6 ? 'tier3' : streak >= 4 ? 'tier2' : 'tier1'
+  const mood = picked ? (picked.correct ? 'happy' : 'shock') : 'idle'
 
   return (
     <GameFrame
@@ -165,17 +167,26 @@ export function SpeedOxGame({ problems, theme, onComplete, onExit }: Props) {
         </div>
       )}
 
-      <div className="ox-top">
-        <TimerRing ratio={t / TOTAL} label={Math.ceil(t)} danger={t <= 2.2} />
-      </div>
-
-      <p className="ox-question">{item.statement}</p>
-      {item.candidate && (
-        <div className="ox-candidate">
-          정답: <b>{item.candidate}</b> <span className="ox-ask">— 맞을까요?</span>
+      <div className="ox-stage">
+        <div className="bt-stars" aria-hidden />
+        <div className="ox-ring">
+          <TimerRing ratio={t / TOTAL} label={Math.ceil(t)} danger={t <= 2.2} />
         </div>
-      )}
-      {item.problem.type === 'ox' && <div className="ox-candidate ox-ask">맞으면 O, 틀리면 X</div>}
+        <div className={`ox-judge ${mood}`}>
+          {avatar}
+          {mood === 'happy' && <span className="ox-bolt" aria-hidden>⚡</span>}
+          {mood === 'shock' && <span className="ox-bolt buzz" aria-hidden>💢</span>}
+        </div>
+        <div className="ox-statement-card">
+          <p className="ox-question">{item.statement}</p>
+          {item.candidate && (
+            <div className="ox-candidate">
+              정답: <b>{item.candidate}</b> <span className="ox-ask">— 맞을까요?</span>
+            </div>
+          )}
+          {item.problem.type === 'ox' && <div className="ox-candidate ox-ask">맞으면 O, 틀리면 X</div>}
+        </div>
+      </div>
 
       <div className="ox-buttons">
         <button
