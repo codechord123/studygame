@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Problem } from '../types/problem'
 import { correctAnswerText } from '../lib/grading'
 import { playCorrect, playWrong } from '../lib/sfx'
+import { GameFrame } from './GameFrame'
 
 export interface GameResult {
   id: string
@@ -91,17 +92,15 @@ export function SpeedOxGame({ problems, theme, onComplete, onExit }: Props) {
   const score = results.filter((r) => r.correct).length
 
   return (
-    <div className={`card ox-game ${theme ?? ''}`}>
-      <div className="q-meta">
-        {onExit && (
-          <button className="q-exit" onClick={onExit}>
-            ← 나가기
-          </button>
-        )}
-        <span className="q-progress">{i + 1} / {items.length}</span>
-        <span className="ox-score">⭐ {score}</span>
-        <span className={`timer ${time <= 3 ? 'danger' : ''}`}>⏱ {time}s</span>
-      </div>
+    <GameFrame
+      theme={theme}
+      className="ox-game"
+      onExit={onExit}
+      progress={`${i + 1} / ${items.length}`}
+      time={time}
+      timeDanger={time <= 3}
+      headerExtra={<span className="ox-score">⭐ {score}</span>}
+    >
       <div className="timer-bar">
         <div className="timer-bar-fill" style={{ width: `${(time / PER_SEC) * 100}%` }} />
       </div>
@@ -137,6 +136,6 @@ export function SpeedOxGame({ problems, theme, onComplete, onExit }: Props) {
           {item.problem.explanation && <div className="explain">📘 {item.problem.explanation}</div>}
         </div>
       )}
-    </div>
+    </GameFrame>
   )
 }

@@ -9,6 +9,7 @@ interface Props {
   lives?: number | null
   time?: number | null
   timeDanger?: boolean
+  headerExtra?: ReactNode
   children: ReactNode
 }
 
@@ -23,6 +24,7 @@ export function GameFrame({
   lives = null,
   time = null,
   timeDanger,
+  headerExtra,
   children,
 }: Props) {
   return (
@@ -34,6 +36,7 @@ export function GameFrame({
           </button>
         )}
         {progress && <span className="q-progress">{progress}</span>}
+        {headerExtra}
         {combo >= 2 && <span className="combo-chip">🔥 {combo} COMBO</span>}
         {lives != null && <span className="gf-lives">{'❤️'.repeat(Math.max(0, lives))}</span>}
         {time != null && <span className={`timer ${timeDanger ? 'danger' : ''}`}>⏱ {time}s</span>}
