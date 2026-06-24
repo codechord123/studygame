@@ -6,6 +6,7 @@ import { computeScore } from '../game/gamification'
 import { useRaf } from '../lib/useRaf'
 import { GameFrame } from './GameFrame'
 import { TimerRing } from './TimerRing'
+import { CountdownIntro } from './CountdownIntro'
 
 export interface GameResult {
   id: string
@@ -73,6 +74,7 @@ export function SpeedOxGame({ problems, theme, onComplete, onExit }: Props) {
   const [score, setScore] = useState(0)
   const [fx, setFx] = useState<Fx | null>(null)
   const [flash, setFlash] = useState<null | 'good' | 'bad'>(null)
+  const [armed, setArmed] = useState(false)
 
   const tRef = useRef(TOTAL)
   const livesRef = useRef(START_LIVES)
@@ -80,7 +82,7 @@ export function SpeedOxGame({ problems, theme, onComplete, onExit }: Props) {
   const fxKey = useRef(0)
 
   const item = items[i]
-  const active = !picked && !!item && livesRef.current > 0
+  const active = armed && !picked && !!item && livesRef.current > 0
 
   // 부드러운 카운트다운
   useRaf(active, (dt) => {
@@ -154,6 +156,7 @@ export function SpeedOxGame({ problems, theme, onComplete, onExit }: Props) {
         </>
       }
     >
+      {!armed && <CountdownIntro onDone={() => setArmed(true)} />}
       {flash && <div className={`hit-flash ${flash}`} aria-hidden />}
       {fx && (
         <div key={fx.key} className="fx-pop" aria-hidden>

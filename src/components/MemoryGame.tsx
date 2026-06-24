@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import type { Problem } from '../types/problem'
 import { correctAnswerText } from '../lib/grading'
-import { playPop, playWrong, playCombo } from '../lib/sfx'
+import { playPop, playWrong, playCombo, playFlip } from '../lib/sfx'
 import { computeScore } from '../game/gamification'
 import { useRaf } from '../lib/useRaf'
 import { GameFrame } from './GameFrame'
@@ -87,6 +87,7 @@ export function MemoryGame({ problems, theme, onComplete, onExit }: Props) {
     if (matched.has(card.pid) || flipped.includes(idx)) return
     const next = [...flipped, idx]
     setFlipped(next)
+    playFlip()
     if (next.length === 2) {
       setBusy(true)
       setMoves((m) => m + 1)

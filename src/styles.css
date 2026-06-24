@@ -2500,6 +2500,35 @@ body {
   text-align: center;
 }
 
+/* ── 공용 시작 카운트다운 인트로 ───────────────────────────────── */
+.countdown-intro {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-lg, 20px);
+  background: rgba(20, 10, 42, 0.45);
+  backdrop-filter: blur(2px);
+}
+.countdown-intro .ci-num {
+  font-size: 92px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 6px 22px rgba(0, 0, 0, 0.5);
+  animation: cdPop 0.6s ease;
+}
+.countdown-intro .ci-go {
+  font-size: 56px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  background: linear-gradient(90deg, #ffd34d, #ff5e62);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: cdGo 0.45s ease;
+}
+
 /* ── 🔢 순서대로 줄줄이 ─────────────────────────────────────────── */
 .seq-game { gap: 10px; }
 .seq-prompt { font-size: 16px; font-weight: 800; line-height: 1.4; margin: 2px 0; }

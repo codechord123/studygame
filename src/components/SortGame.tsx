@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import type { Problem, MultipleChoiceProblem } from '../types/problem'
 import type { GameResult } from './SpeedOxGame'
 import { GameFrame } from './GameFrame'
+import { CountdownIntro } from './CountdownIntro'
 import { useRaf } from '../lib/useRaf'
 import { computeScore } from '../game/gamification'
 import { playCorrect, playWrong, playCombo, playWhoosh } from '../lib/sfx'
@@ -54,6 +55,7 @@ export function SortGame({ problems, theme, onComplete, onExit }: Props) {
   const [gained, setGained] = useState(0)
   const [flash, setFlash] = useState<null | { ok: boolean; key: string; answer: string }>(null)
   const [fx, setFx] = useState<null | { key: number; pts: number; tag: string | null }>(null)
+  const [armed, setArmed] = useState(false)
 
   const fxKey = useRef(0)
   const yRef = useRef(0)
@@ -69,7 +71,7 @@ export function SortGame({ problems, theme, onComplete, onExit }: Props) {
 
   const problem = items[qi]
   const playable = items.length >= 2 && bins.length >= 2
-  const active = playable && !flash && !!problem && livesRef.current > 0
+  const active = armed && playable && !flash && !!problem && livesRef.current > 0
 
   // 카드 x(드래그 범위 30~70%) → 바구니 인덱스로 균등 매핑
   const binFromX = (px: number) =>
@@ -161,6 +163,7 @@ export function SortGame({ problems, theme, onComplete, onExit }: Props) {
       combo={combo}
       lives={lives}
     >
+      {!armed && <CountdownIntro onDone={() => setArmed(true)} />}
       <p className="sort-hint">💎 {gained} · 카드를 끌어 알맞은 바구니 위로!</p>
 
       <div
