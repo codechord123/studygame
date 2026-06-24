@@ -2,9 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { QuestionCard, type PlayMode } from './components/QuestionCard'
 import { SpeedOxGame, type GameResult } from './components/SpeedOxGame'
 import { MemoryGame } from './components/MemoryGame'
-import { AcidRainGame } from './components/AcidRainGame'
-import { MoleGame } from './components/MoleGame'
-import { BalloonGame } from './components/BalloonGame'
+import { SortGame } from './components/SortGame'
+import { BossGame } from './components/BossGame'
 import { TownMap, type FacilityScreen } from './components/TownMap'
 import { AiMaker } from './components/AiMaker'
 import { ProblemCreate, type EditTarget } from './components/ProblemCreate'
@@ -433,13 +432,16 @@ export default function App() {
         unit: p.unit,
       })
     }
+    // 실제로 응답한 문제만 결과에 반영 (분류/보스의 조기 종료·부분 풀이 대비)
+    const answeredIds = new Set(results.map((r) => r.id))
+    const played = problems.filter((p) => answeredIds.has(p.id))
     await finishSession({
-      problems,
+      problems: played.length ? played : problems,
       mode: 'challenge',
       villagerId: villager?.id,
       villagerName: villager?.name,
       miniGameId,
-      i: problems.length,
+      i: played.length || problems.length,
       combo,
       bestCombo,
       correct,
@@ -725,9 +727,9 @@ export default function App() {
             />
           )
         }
-        if (kind === 'rain') {
+        if (kind === 'sort') {
           return (
-            <AcidRainGame
+            <SortGame
               problems={session.problems}
               theme={theme}
               onComplete={(res) => finishFromResults(session.problems, res, villager, session.miniGameId)}
@@ -735,19 +737,9 @@ export default function App() {
             />
           )
         }
-        if (kind === 'mole') {
+        if (kind === 'boss') {
           return (
-            <MoleGame
-              problems={session.problems}
-              theme={theme}
-              onComplete={(res) => finishFromResults(session.problems, res, villager, session.miniGameId)}
-              onExit={exitQuiz}
-            />
-          )
-        }
-        if (kind === 'balloon') {
-          return (
-            <BalloonGame
+            <BossGame
               problems={session.problems}
               theme={theme}
               onComplete={(res) => finishFromResults(session.problems, res, villager, session.miniGameId)}

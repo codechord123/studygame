@@ -1841,6 +1841,195 @@ body {
   word-break: break-word;
 }
 
+/* ── 공통 게임 프레임 ─────────────────────────────────────────── */
+.game-frame {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.gf-lives {
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+.game-frame.shake {
+  animation: gameShake 0.4s ease;
+}
+@keyframes gameShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-7px); }
+  40% { transform: translateX(7px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+/* ── 분류 대소동 ─────────────────────────────────────────────── */
+.sort-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+.sort-empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 40px 16px;
+  line-height: 1.6;
+}
+.sort-field {
+  position: relative;
+  height: 42vh;
+  min-height: 240px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #0e1330 0%, #141a40 100%);
+  border: 1px solid var(--line);
+}
+.sort-item {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 78%;
+  max-width: 320px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--card);
+  border: 2px solid var(--theme, #6b8bff);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  will-change: top;
+}
+.sort-flash {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  transform: translateX(-50%);
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 16px;
+  text-align: center;
+  max-width: 90%;
+}
+.sort-flash.good { background: rgba(46, 204, 113, 0.2); color: var(--good); border: 1px solid var(--good); }
+.sort-flash.bad { background: rgba(255, 107, 107, 0.18); color: var(--bad); border: 1px solid var(--bad); }
+.sort-bins {
+  display: flex;
+  gap: 8px;
+}
+.sort-bin {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 6px;
+  border-radius: 14px;
+  border: 2px solid var(--line);
+  background: #161a33;
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+.sort-bin:active { transform: scale(0.95); }
+.sort-bin.bin-0 { border-color: #4dd2ff; }
+.sort-bin.bin-1 { border-color: #ffd34d; }
+.sort-bin.bin-2 { border-color: #6bff9e; }
+.sort-bin.hit-ok { background: rgba(46, 204, 113, 0.28); }
+.sort-bin.hit-no { background: rgba(255, 107, 107, 0.22); }
+.bin-emoji { font-size: 22px; }
+.bin-label {
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* ── 보스 러시 ───────────────────────────────────────────────── */
+.boss-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0 4px;
+}
+.boss-face {
+  font-size: 56px;
+  line-height: 1;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.4));
+}
+.boss-face.hurt { animation: bossHurt 0.4s ease; }
+@keyframes bossHurt {
+  0%, 100% { transform: scale(1); }
+  40% { transform: scale(1.18) rotate(-6deg); filter: brightness(1.6); }
+}
+.boss-hp {
+  position: relative;
+  width: 80%;
+  max-width: 320px;
+  height: 16px;
+  border-radius: 999px;
+  background: #0e1126;
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.boss-hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff4d6d, #ff8a3d);
+  border-radius: 999px;
+  transition: width 0.45s ease;
+}
+.boss-hp-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.boss-dmg {
+  position: absolute;
+  top: 4px;
+  right: 14%;
+  font-weight: 900;
+  font-size: 18px;
+  animation: dmgPop 0.6s ease forwards;
+}
+.boss-dmg.hit { color: #ffd34d; }
+.boss-dmg.crit { color: #ff5d8f; font-size: 22px; }
+.boss-dmg.block { color: var(--bad); }
+@keyframes dmgPop {
+  0% { transform: translateY(0) scale(0.6); opacity: 0; }
+  30% { transform: translateY(-10px) scale(1.2); opacity: 1; }
+  100% { transform: translateY(-26px) scale(1); opacity: 0; }
+}
+.boss-q {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.45;
+  margin: 4px 0 0;
+}
+.boss-foot {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+}
+
 /* ── 산성비 피하기 ─────────────────────────────────────────────── */
 .rain-game,
 .mole-game {
