@@ -203,10 +203,11 @@ body {
 .btn.primary:active {
   box-shadow: 0 2px 0 #5b21b6, 0 6px 12px rgba(91, 33, 182, 0.35);
 }
+/* 보조 버튼 — 밝은 표면/보라 배경 어디서나 또렷하게 (흰 카드 위 가독성 우선) */
 .btn.ghost {
-  background: rgba(255, 255, 255, 0.16);
-  color: var(--on-bg);
-  border: 2px solid rgba(255, 255, 255, 0.55);
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 2px solid var(--line);
 }
 .btn.accent {
   background: var(--accent);
@@ -287,9 +288,9 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 180px;
-  border: 2px dashed var(--line);
+  border: 2px dashed #cdc6ea;
   border-radius: 16px;
-  background: #0e1126;
+  background: var(--surface-2);
   cursor: pointer;
   overflow: hidden;
 }
@@ -315,8 +316,8 @@ body {
 .hint-input {
   flex: 1;
   min-width: 0;
-  background: #0e1126;
-  border: 1.5px solid var(--line);
+  background: var(--surface-2);
+  border: 2px solid var(--line);
   color: var(--ink);
   border-radius: 10px;
   padding: 10px;
@@ -684,8 +685,8 @@ body {
   justify-content: center;
 }
 .avatar-opt.sel {
-  border-color: var(--accent);
-  background: #232a55;
+  border-color: var(--primary);
+  background: rgba(124, 58, 237, 0.14);
 }
 
 /* HUD identity */
@@ -1161,10 +1162,19 @@ body {
   display: flex;
   align-items: center;
   gap: 14px;
-  background: linear-gradient(135deg, #2c3566, #1d2247);
-  border: 1px solid var(--line);
-  border-radius: 20px;
+  background: linear-gradient(135deg, #7c3aed 0%, #c026d3 100%);
+  border: none;
+  border-radius: var(--r-lg);
   padding: 16px 18px;
+  box-shadow: var(--sh-card);
+  color: #fff;
+}
+.plaza-hi {
+  color: #fff;
+  font-weight: 900;
+}
+.plaza-sub {
+  color: rgba(255, 255, 255, 0.85) !important;
 }
 .plaza-avatar {
   font-size: 44px;
@@ -1283,6 +1293,7 @@ body {
 .npc-dialog {
   position: relative;
   background: var(--card);
+  color: var(--ink);
   border: 1px solid var(--line);
   border-radius: 24px;
   padding: 44px 20px 20px;
@@ -1333,7 +1344,7 @@ body {
   color: var(--muted);
 }
 .npc-speech {
-  background: #0e1126;
+  background: var(--surface-2);
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 12px 14px;
@@ -1761,7 +1772,7 @@ body {
   object-fit: contain;
   border-radius: 12px;
   border: 1px solid var(--line);
-  background: #0e1126;
+  background: var(--surface-2);
 }
 
 /* ── 문제 만들기 폼 ────────────────────────────────────────────── */
@@ -1779,8 +1790,8 @@ body {
   color: var(--muted);
 }
 .field-input {
-  background: #0e1126;
-  border: 1.5px solid var(--line);
+  background: var(--surface-2);
+  border: 2px solid var(--line);
   color: var(--ink);
   border-radius: 12px;
   padding: 11px 12px;
@@ -1802,7 +1813,7 @@ body {
   gap: 8px;
 }
 .type-btn {
-  background: #0e1126;
+  background: var(--surface-2);
   border: 2px solid var(--line);
   color: var(--ink);
   border-radius: 14px;
@@ -1817,8 +1828,8 @@ body {
   transform: scale(0.97);
 }
 .type-btn.on {
-  border-color: var(--primary2);
-  background: #232a55;
+  border-color: var(--primary);
+  background: rgba(124, 58, 237, 0.12);
 }
 .type-emoji {
   font-size: 22px;
@@ -1903,20 +1914,28 @@ body {
   font-size: 48px;
   padding: 18px 0;
   border-radius: 18px;
-  border: 2px solid var(--line);
-  background: #161a33;
+  border: none;
+  color: #fff;
   cursor: pointer;
+  transition: transform 0.07s ease, filter 0.15s ease;
+}
+.ox-big.o {
+  background: var(--good);
+  box-shadow: 0 5px 0 #167a3f;
+}
+.ox-big.x {
+  background: var(--bad);
+  box-shadow: 0 5px 0 #b3322f;
 }
 .ox-big:active {
-  transform: scale(0.96);
+  transform: translateY(2px);
 }
 .ox-big.ok {
-  border-color: var(--good);
-  background: rgba(46, 204, 113, 0.18);
+  box-shadow: 0 0 0 4px rgba(36, 163, 90, 0.4), 0 5px 0 #167a3f;
+  filter: brightness(1.15);
 }
 .ox-big.no {
-  border-color: var(--bad);
-  background: rgba(255, 107, 107, 0.18);
+  filter: grayscale(0.5) brightness(0.85);
 }
 
 /* ── 카드 뒤집기 ──────────────────────────────────────────────── */
@@ -1954,7 +1973,7 @@ body {
   border-color: var(--theme, var(--line));
 }
 .mcard.up.side-a {
-  background: #1a2a22;
+  background: #e6f7ee;
   border-color: var(--good);
 }
 .mcard.matched {
@@ -2528,7 +2547,7 @@ body {
   gap: 10px;
 }
 .menu-item {
-  background: #161a33;
+  background: var(--surface-2);
   border: 1px solid var(--line);
   color: var(--ink);
   border-radius: 14px;
