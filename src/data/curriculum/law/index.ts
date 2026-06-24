@@ -6,6 +6,7 @@ import { memoryProblems } from './memory'
 import { fillProblems } from './fill'
 import { sortProblems } from './sort'
 import { sequenceProblems } from './sequence'
+import { appliedProblems } from './applied'
 
 // 「법과 인권」(사회 5-1) 미니게임별 맞춤 문제 풀.
 //  - speed    : 짧고 빠른 객관식
@@ -24,4 +25,5 @@ export const lawProblems: Problem[] = [
   ...fillProblems,
   ...sortProblems,
   ...sequenceProblems,
+  ...appliedProblems,
 ]
