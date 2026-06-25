@@ -3931,3 +3931,143 @@ body {
   text-align: center;
   color: var(--muted);
 }
+
+/* ── 리듬 정답 두드리기 ─────────────────────────────────────────── */
+.rhythm-q {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.4;
+  color: var(--ink);
+  margin: 4px 0 8px;
+  min-height: 44px;
+}
+.rhythm-track {
+  position: relative;
+  overflow: hidden;
+  height: clamp(280px, 46vh, 380px);
+  border-radius: 18px;
+  background: radial-gradient(120% 90% at 50% 0%, #3a2a78 0%, #241a4e 70%, #1c143e 100%);
+  box-shadow: inset 0 -24px 50px -24px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  transition: box-shadow 0.12s ease;
+}
+.rflash-good .rhythm-track {
+  box-shadow: inset 0 0 0 3px rgba(77, 208, 160, 0.8), inset 0 0 40px rgba(77, 208, 160, 0.35);
+}
+.rflash-bad .rhythm-track {
+  box-shadow: inset 0 0 0 3px rgba(255, 94, 110, 0.85), inset 0 0 40px rgba(255, 94, 110, 0.35);
+}
+.rhythm-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 5px;
+  margin-top: -2px;
+  background: linear-gradient(90deg, transparent, #ffd34d 30%, #fff 50%, #ffd34d 70%, transparent);
+  z-index: 3;
+  pointer-events: none;
+}
+.rhythm-line-pulse {
+  position: absolute;
+  inset: -7px 0;
+  background: rgba(255, 211, 77, 0.25);
+  filter: blur(5px);
+  animation: rLinePulse 1s ease-in-out infinite;
+}
+@keyframes rLinePulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.9; }
+}
+.rhythm-cols {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 1), 1fr);
+  z-index: 2;
+}
+.rcol {
+  position: relative;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  border-right: 1px dashed rgba(255, 255, 255, 0.1);
+  -webkit-tap-highlight-color: transparent;
+}
+.rcol:last-child { border-right: none; }
+.rcol:active { background: rgba(255, 255, 255, 0.06); }
+.rtile {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 12px);
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+  padding: 7px 8px;
+  border-radius: 13px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: #fff;
+  text-align: center;
+  word-break: keep-all;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.28), inset 0 0 0 2px rgba(255, 255, 255, 0.18);
+}
+/* 칸별 카훗 4색 */
+.rcol:nth-child(1) .rtile { background: linear-gradient(160deg, #ff6b8b, #e23b5c); }
+.rcol:nth-child(2) .rtile { background: linear-gradient(160deg, #4d9dff, #1f6fd6); }
+.rcol:nth-child(3) .rtile { background: linear-gradient(160deg, #ffd35a, #e0a020); color: #3d2c00; }
+.rcol:nth-child(4) .rtile { background: linear-gradient(160deg, #5ad17f, #25a050); }
+.rtile.hit {
+  outline: 3px solid #fff;
+  box-shadow: 0 0 0 3px #ffd34d, 0 0 22px rgba(255, 211, 77, 0.8);
+  animation: rHit 0.3s ease;
+}
+@keyframes rHit {
+  0% { transform: translate(-50%, -50%) scale(1); }
+  45% { transform: translate(-50%, -50%) scale(1.16); }
+  100% { transform: translate(-50%, -50%) scale(1.05); }
+}
+.rtile.dim { opacity: 0.32; filter: grayscale(0.5); }
+.rhythm-fx {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+  text-align: center;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  animation: rFx 0.6s ease;
+}
+.rhythm-fx-tag {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+.rhythm-fx.good .rhythm-fx-tag { color: #ffe27a; }
+.rhythm-fx.bad .rhythm-fx-tag { color: #ff7a8c; }
+.rhythm-fx-pts {
+  font-size: 18px;
+  font-weight: 900;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 1px 10px;
+  border-radius: 999px;
+}
+@keyframes rFx {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+  30% { transform: translate(-50%, -70%) scale(1.15); opacity: 1; }
+  100% { transform: translate(-50%, -95%) scale(1); opacity: 0; }
+}
+.rhythm-hint {
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  margin: 10px 0 2px;
+}

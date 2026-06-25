@@ -14,7 +14,7 @@ export interface MiniGame {
   emoji: string
   name: string
   desc: string
-  kind: 'card' | 'ox' | 'sort' | 'boss' | 'memory' | 'sequence'
+  kind: 'card' | 'ox' | 'sort' | 'boss' | 'memory' | 'sequence' | 'rhythm'
   mode: PlayMode
   pool: string
   count: number
@@ -28,6 +28,7 @@ export const MINIGAMES: MiniGame[] = [
   { id: 'memory', emoji: '🃏', name: '짝꿍 카드',     desc: '4×4 카드에서 용어와 뜻을 짝지어요',       kind: 'memory', mode: 'study',     pool: 'memory', count: 8 },
   { id: 'seq',    emoji: '🔢', name: '순서대로 줄줄이', desc: '카드를 올바른 순서로 배열!',              kind: 'sequence', mode: 'challenge', pool: 'seq', count: 8 },
   { id: 'fill',   emoji: '🔲', name: '빈칸 술술',     desc: '핵심 낱말로 빈칸 채우기 (천천히)',        kind: 'card',   mode: 'study',     pool: 'fill',   count: 10 },
+  { id: 'rhythm', emoji: '🎵', name: '리듬 정답 두드리기', desc: '정답 타일이 선에 닿을 때 탭! 타이밍+정답', kind: 'rhythm', mode: 'challenge', pool: 'all', count: 12 },
 ]
 
 export function miniGameById(id: string): MiniGame | undefined {
@@ -93,6 +94,19 @@ export function pickForGame(g: MiniGame, problems: Problem[]): Problem[] {
 
   if (g.kind === 'sort') {
     return shuffled(dominantSortGroup(problems)).slice(0, g.count)
+  }
+
+  // 리듬: 보기 칸이 짧은 객관식 우선(타일에 잘 들어가게), 부족하면 객관식/OX 폴백
+  if (g.kind === 'rhythm') {
+    const mc = base.filter(
+      (p) => p.type === 'multiple_choice' && p.choices.length >= 2 && p.choices.length <= 4,
+    )
+    const short = mc.filter(
+      (p) => p.type === 'multiple_choice' && p.choices.every((c) => c.length <= 16),
+    )
+    let rp = short.length >= 4 ? short : mc
+    if (rp.length < 4) rp = base.filter((p) => p.type === 'multiple_choice' || p.type === 'ox')
+    return shuffled(rp).slice(0, g.count)
   }
 
   return shuffled(pool).slice(0, g.count)
