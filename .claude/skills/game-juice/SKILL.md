@@ -61,6 +61,32 @@ description: 게임 손맛(juice)·게임필 도구상자. 게임을 새로 만�
 
 ---
 
+## 🚀 설치 — 이 스킬이 런타임 코드를 들고 다닌다
+
+이 스킬 폴더에는 **실제 동작 코드가 `module/` 에 번들**되어 있다(자기완결형 드롭인: `sfx.ts`가 juice 안에 포함). 새 프로젝트에서 juice를 쓰려면 **설명만 하지 말고 아래로 설치**한다.
+
+**설치 절차(에이전트가 수행):**
+1. 대상 프로젝트에 이미 `src/lib/juice/` 가 있으면 → 그걸 import해서 쓴다(설치 불필요).
+2. 없으면 → 이 스킬의 `module/` 를 프로젝트에 복사한다. 스크립트 사용 권장:
+   ```bash
+   bash <이 스킬 폴더>/install.sh <프로젝트_루트>
+   # 예) bash ~/.claude/skills/game-juice/install.sh .
+   ```
+   스크립트가 없거나 환경이 다르면 동등하게 복사:
+   ```bash
+   mkdir -p <프로젝트>/src/lib/juice
+   cp <이 스킬 폴더>/module/*.ts <프로젝트>/src/lib/juice/
+   ```
+3. 설치 후 import 해서 사용:
+   ```ts
+   import { useJuice, shake, flash, burstConfetti, floatText, vibrate } from '<상대경로>/lib/juice'
+   ```
+
+**주의**
+- 번들 모듈은 `sfx.ts` 가 `src/lib/juice/` **안**에 들어가는 자기완결형이다(이 studygame 저장소는 `src/lib/sfx.ts` 가 바깥에 있는 기존 배치를 유지 — 새 프로젝트만 드롭인 사용).
+- `effects.ts / floatText.ts / sfx.ts` 는 **React 불필요**(순수 TS, Web Animations/Web Audio). `useJuice.ts` 만 React 훅 — 비 React 프로젝트면 빼고 쓴다.
+- 빌드 도구가 `.ts` 만 받으면 그대로, JS 프로젝트면 타입 제거 후 사용.
+
 ## 📦 이 저장소의 재사용 모듈 — `src/lib/juice/`
 
 studygame 안에는 아래 키트가 **실제 동작 코드**로 들어 있다. 새 연출은 흩어서 짜지 말고 여기서 import 한다.
